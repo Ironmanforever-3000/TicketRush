@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: ticketrush
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ticketrush
+    username: ticketrush
+    password: ticketrush_password
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    enabled: true
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+  endpoint:
+    health:
+      show-details: always
