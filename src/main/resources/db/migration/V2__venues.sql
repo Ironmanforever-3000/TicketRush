@@ -1,0 +1,7 @@
+CREATE TABLE venues (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    city VARCHAR(100) NOT NULL,
+    layout_json JSONB NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL
+);
