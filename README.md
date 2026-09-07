@@ -21,7 +21,7 @@ The system must guarantee:
 
 ## Tech Stack
 
-- Java 21
+- Java 25
 - Spring Boot 3
 - PostgreSQL
 - Flyway
