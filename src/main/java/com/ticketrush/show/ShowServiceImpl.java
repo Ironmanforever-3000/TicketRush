@@ -64,8 +64,8 @@ public class ShowServiceImpl implements ShowService {
         if (request.saleOpensAt().isAfter(request.startsAt())) {
             throw new BadRequestException("saleOpensAt cannot be after startsAt");
         }
-        if (request.saleClosesAt() != null && request.startsAt().isAfter(request.saleClosesAt())) {
-            throw new BadRequestException("startsAt cannot be after saleClosesAt");
+        if (request.saleClosesAt() != null && request.startsAt().isBefore(request.saleClosesAt())) {
+            throw new BadRequestException("startsAt cannot be before saleClosesAt");
         }
 
         Show show = new Show();
@@ -170,3 +170,4 @@ public class ShowServiceImpl implements ShowService {
         );
     }
 }
+

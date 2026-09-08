@@ -2,6 +2,8 @@ package com.ticketrush.venue;
 
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "venues")
@@ -22,6 +24,7 @@ public class Venue {
         nullable = false,
         columnDefinition = "jsonb"
     )
+    @JdbcTypeCode(SqlTypes.JSON)
     private String layoutJson;
 
     @Column(name = "created_at", nullable = false)
@@ -78,3 +81,4 @@ public class Venue {
         this.createdAt = createdAt;
     }
 }
+

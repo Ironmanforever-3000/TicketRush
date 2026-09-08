@@ -3,7 +3,7 @@ spring:
     name: ticketrush
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/ticketrush
+    url: jdbc:postgresql://localhost:5433/ticketrush?options=-c%20timezone=UTC
     username: ticketrush
     password: ticketrush_password
     driver-class-name: org.postgresql.Driver
@@ -34,3 +34,5 @@ management:
   endpoint:
     health:
       show-details: always
+
+
