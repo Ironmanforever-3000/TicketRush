@@ -1,8 +1,11 @@
 package com.ticketrush.show.dto;
 
 import com.ticketrush.show.ShowStatus;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.time.OffsetDateTime;
+import java.util.List;
 
 public record ShowCreateRequest(
     @NotNull Long eventId,
@@ -10,5 +13,6 @@ public record ShowCreateRequest(
     @NotNull OffsetDateTime startsAt,
     @NotNull OffsetDateTime saleOpensAt,
     OffsetDateTime saleClosesAt,
-    @NotNull ShowStatus status
+    @NotNull ShowStatus status,
+    @NotEmpty @Valid List<SeatTierRequest> tiers
 ) {}
