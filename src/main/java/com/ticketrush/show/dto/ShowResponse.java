@@ -6,7 +6,9 @@ import java.time.OffsetDateTime;
 public record ShowResponse(
     Long id,
     Long eventId,
+    String eventTitle,
     Long venueId,
+    String venueName,
     OffsetDateTime startsAt,
     OffsetDateTime saleOpensAt,
     OffsetDateTime saleClosesAt,

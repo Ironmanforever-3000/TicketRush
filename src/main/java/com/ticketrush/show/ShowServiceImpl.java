@@ -160,7 +160,9 @@ public class ShowServiceImpl implements ShowService {
         return new ShowResponse(
                 show.getId(),
                 show.getEvent().getId(),
+                show.getEvent().getTitle(),
                 show.getVenue().getId(),
+                show.getVenue().getName(),
                 show.getStartsAt(),
                 show.getSaleOpensAt(),
                 show.getSaleClosesAt(),
