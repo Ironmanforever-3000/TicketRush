@@ -27,4 +27,9 @@ management:
 
   endpoint:
     health:
-      show-details: always
+      show-details: always    properties:
+      hibernate:
+        jdbc:
+          batch_size: 100
+        order_inserts: true
+        order_updates: true
