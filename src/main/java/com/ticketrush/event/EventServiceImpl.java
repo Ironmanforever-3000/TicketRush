@@ -35,7 +35,7 @@ public class EventServiceImpl implements EventService {
         event.setTitle(request.title());
         event.setDescription(request.description());
         event.setCategory(request.category());
-        event.setStatus(request.status());
+        event.setStatus(com.ticketrush.event.EventStatus.DRAFT);
         event.setCreatedAt(OffsetDateTime.now());
         
         event = eventRepository.save(event);
@@ -66,7 +66,7 @@ public class EventServiceImpl implements EventService {
         if (request.title() != null) event.setTitle(request.title());
         if (request.description() != null) event.setDescription(request.description());
         if (request.category() != null) event.setCategory(request.category());
-        if (request.status() != null) event.setStatus(request.status());
+        if (request.status() != null) event.setStatus(com.ticketrush.event.EventStatus.DRAFT);
         
         event = eventRepository.save(event);
         return mapToResponse(event);
@@ -96,3 +96,4 @@ public class EventServiceImpl implements EventService {
         );
     }
 }
+
