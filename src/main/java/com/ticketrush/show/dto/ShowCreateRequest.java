@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import java.time.OffsetDateTime;
 import java.util.List;
 
+@com.ticketrush.validation.ValidShowDates
 public record ShowCreateRequest(
     @NotNull Long eventId,
     @NotNull Long venueId,
@@ -16,3 +17,4 @@ public record ShowCreateRequest(
     @NotNull ShowStatus status,
     @NotEmpty @Valid List<SeatTierRequest> tiers
 ) {}
+

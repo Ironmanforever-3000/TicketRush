@@ -61,12 +61,7 @@ public class ShowServiceImpl implements ShowService {
         Venue venue = venueRepository.findById(request.venueId())
                 .orElseThrow(() -> new ResourceNotFoundException("Venue not found with id: " + request.venueId()));
 
-        if (request.saleOpensAt().isAfter(request.startsAt())) {
-            throw new BadRequestException("saleOpensAt cannot be after startsAt");
-        }
-        if (request.saleClosesAt() != null && request.startsAt().isBefore(request.saleClosesAt())) {
-            throw new BadRequestException("startsAt cannot be before saleClosesAt");
-        }
+        
 
         Show show = new Show();
         show.setEvent(event);
@@ -170,4 +165,5 @@ public class ShowServiceImpl implements ShowService {
         );
     }
 }
+
 

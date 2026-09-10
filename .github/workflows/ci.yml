@@ -19,11 +19,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 25
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "25"
+          java-version: "21"
           cache: maven
 
       - name: Make Maven wrapper executable
@@ -31,3 +31,4 @@ jobs:
 
       - name: Build and test
         run: ./mvnw clean verify
+

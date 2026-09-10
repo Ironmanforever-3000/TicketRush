@@ -1,33 +1,68 @@
-HELP.md
+# ==============================
+# Java
+# ==============================
+*.class
+*.log
+*.ctxt
+*.lock
+hs_err_pid*
+replay_pid*
+
+# ==============================
+# Maven
+# ==============================
 target/
-.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
+.mvn/timing.properties
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-
-### IntelliJ IDEA ###
-.idea
-*.iws
+# ==============================
+# IntelliJ IDEA
+# ==============================
+.idea/
 *.iml
+*.iws
 *.ipr
+out/
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
+# ==============================
+# Eclipse
+# ==============================
+.classpath
+.project
+.settings/
 
-### VS Code ###
+# ==============================
+# VS Code
+# ==============================
 .vscode/
+
+# ==============================
+# OS files
+# ==============================
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ==============================
+# Environment / secrets
+# ==============================
+.env
+.env.*
+!.env.example
+
+# ==============================
+# Spring Boot
+# ==============================
+spring.log
+
+# ==============================
+# Docker local data
+# ==============================
+docker-data/
+
+# ==============================
+# Temporary files
+# ==============================
+*.tmp
+*.temp
+*.swp
+*.swo
