@@ -1,0 +1,173 @@
+
+         /\      Grafana   /ΓÇ╛ΓÇ╛/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ΓÇ╛ΓÇ╛\ 
+  /          \   |   (  |  (ΓÇ╛)  |
+ / __________ \  |_|\_\  \_____/ 
+
+
+     execution: local
+        script: /load-tests/phase2/atomic-hold.js
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 200 max VUs, 40s max duration (incl. graceful stop):
+              * default: 200 looping VUs for 10s (gracefulStop: 30s)
+
+
+running (01.0s), 200/200 VUs, 0 complete and 0 interrupted iterations
+default   [  10% ] 200 VUs  01.0s/10s
+
+running (02.0s), 200/200 VUs, 325 complete and 0 interrupted iterations
+default   [  20% ] 200 VUs  02.0s/10s
+
+running (03.0s), 200/200 VUs, 838 complete and 0 interrupted iterations
+default   [  30% ] 200 VUs  03.0s/10s
+
+running (04.0s), 200/200 VUs, 1506 complete and 0 interrupted iterations
+default   [  40% ] 200 VUs  04.0s/10s
+
+running (05.0s), 200/200 VUs, 2309 complete and 0 interrupted iterations
+default   [  50% ] 200 VUs  05.0s/10s
+
+running (06.0s), 200/200 VUs, 3067 complete and 0 interrupted iterations
+default   [  60% ] 200 VUs  06.0s/10s
+
+running (07.0s), 200/200 VUs, 3918 complete and 0 interrupted iterations
+default   [  70% ] 200 VUs  07.0s/10s
+
+running (08.0s), 200/200 VUs, 4695 complete and 0 interrupted iterations
+default   [  80% ] 200 VUs  08.0s/10s
+
+running (09.0s), 200/200 VUs, 5522 complete and 0 interrupted iterations
+default   [  90% ] 200 VUs  09.0s/10s
+
+running (10.0s), 200/200 VUs, 6435 complete and 0 interrupted iterations
+default   [ 100% ] 200 VUs  10.0s/10s
+
+running (11.0s), 020/200 VUs, 6651 complete and 0 interrupted iterations
+default Γåô [ 100% ] 200 VUs  10s
+
+running (12.0s), 020/200 VUs, 6651 complete and 0 interrupted iterations
+default Γåô [ 100% ] 200 VUs  10s
+
+running (13.0s), 020/200 VUs, 6651 complete and 0 interrupted iterations
+default Γåô [ 100% ] 200 VUs  10s
+
+running (14.0s), 020/200 VUs, 6651 complete and 0 interrupted iterations
+default Γåô [ 100% ] 200 VUs  10s
+
+running (15.0s), 020/200 VUs, 6651 complete and 0 interrupted iterations
+default Γåô [ 100% ] 200 VUs  10s
+
+running (16.0s), 020/200 VUs, 6651 complete and 0 interrupted iterations
+default Γåô [ 100% ] 200 VUs  10s
+
+running (17.0s), 020/200 VUs, 6651 complete and 0 interrupted iterations
+default Γåô [ 100% ] 200 VUs  10s
+
+running (18.0s), 020/200 VUs, 6651 complete and 0 interrupted iterations
+default Γåô [ 100% ] 200 VUs  10s
+
+running (19.0s), 020/200 VUs, 6651 complete and 0 interrupted iterations
+default Γåô [ 100% ] 200 VUs  10s
+
+running (20.0s), 020/200 VUs, 6651 complete and 0 interrupted iterations
+default Γåô [ 100% ] 200 VUs  10s
+
+running (21.0s), 020/200 VUs, 6651 complete and 0 interrupted iterations
+default Γåô [ 100% ] 200 VUs  10s
+
+running (22.0s), 020/200 VUs, 6651 complete and 0 interrupted iterations
+default Γåô [ 100% ] 200 VUs  10s
+
+running (23.0s), 020/200 VUs, 6651 complete and 0 interrupted iterations
+default Γåô [ 100% ] 200 VUs  10s
+
+running (24.0s), 020/200 VUs, 6651 complete and 0 interrupted iterations
+default Γåô [ 100% ] 200 VUs  10s
+
+running (25.0s), 020/200 VUs, 6651 complete and 0 interrupted iterations
+default Γåô [ 100% ] 200 VUs  10s
+
+running (26.0s), 020/200 VUs, 6651 complete and 0 interrupted iterations
+default Γåô [ 100% ] 200 VUs  10s
+
+running (27.0s), 020/200 VUs, 6651 complete and 0 interrupted iterations
+default Γåô [ 100% ] 200 VUs  10s
+
+running (28.0s), 020/200 VUs, 6651 complete and 0 interrupted iterations
+default Γåô [ 100% ] 200 VUs  10s
+
+running (29.0s), 020/200 VUs, 6651 complete and 0 interrupted iterations
+default Γåô [ 100% ] 200 VUs  10s
+
+running (30.0s), 020/200 VUs, 6651 complete and 0 interrupted iterations
+default Γåô [ 100% ] 200 VUs  10s
+
+running (31.0s), 020/200 VUs, 6651 complete and 0 interrupted iterations
+default Γåô [ 100% ] 200 VUs  10s
+
+running (32.0s), 020/200 VUs, 6651 complete and 0 interrupted iterations
+default Γåô [ 100% ] 200 VUs  10s
+
+running (33.0s), 020/200 VUs, 6651 complete and 0 interrupted iterations
+default Γåô [ 100% ] 200 VUs  10s
+time="2026-09-12T12:57:44Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8080/api/v1/shows/1/holds\": dial: i/o timeout"
+time="2026-09-12T12:57:44Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8080/api/v1/shows/1/holds\": dial: i/o timeout"
+time="2026-09-12T12:57:44Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8080/api/v1/shows/1/holds\": dial: i/o timeout"
+time="2026-09-12T12:57:45Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8080/api/v1/shows/1/holds\": dial: i/o timeout"
+time="2026-09-12T12:57:45Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8080/api/v1/shows/1/holds\": dial: i/o timeout"
+time="2026-09-12T12:57:45Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8080/api/v1/shows/1/holds\": dial: i/o timeout"
+
+running (34.0s), 014/200 VUs, 6657 complete and 0 interrupted iterations
+default Γåô [ 100% ] 200 VUs  10s
+time="2026-09-12T12:57:45Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8080/api/v1/shows/1/holds\": dial: i/o timeout"
+time="2026-09-12T12:57:45Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8080/api/v1/shows/1/holds\": dial: i/o timeout"
+time="2026-09-12T12:57:45Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8080/api/v1/shows/1/holds\": dial: i/o timeout"
+time="2026-09-12T12:57:45Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8080/api/v1/shows/1/holds\": dial: i/o timeout"
+time="2026-09-12T12:57:45Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8080/api/v1/shows/1/holds\": dial: i/o timeout"
+time="2026-09-12T12:57:45Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8080/api/v1/shows/1/holds\": dial: i/o timeout"
+time="2026-09-12T12:57:45Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8080/api/v1/shows/1/holds\": dial: i/o timeout"
+time="2026-09-12T12:57:45Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8080/api/v1/shows/1/holds\": dial: i/o timeout"
+time="2026-09-12T12:57:45Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8080/api/v1/shows/1/holds\": dial: i/o timeout"
+time="2026-09-12T12:57:45Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8080/api/v1/shows/1/holds\": dial: i/o timeout"
+time="2026-09-12T12:57:45Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8080/api/v1/shows/1/holds\": dial: i/o timeout"
+time="2026-09-12T12:57:46Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8080/api/v1/shows/1/holds\": dial: i/o timeout"
+time="2026-09-12T12:57:46Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8080/api/v1/shows/1/holds\": dial: i/o timeout"
+time="2026-09-12T12:57:46Z" level=warning msg="Request Failed" error="Post \"http://host.docker.internal:8080/api/v1/shows/1/holds\": dial: i/o timeout"
+
+
+  Γûê TOTAL RESULTS 
+
+    checks_total.......: 6671   192.333268/s
+    checks_succeeded...: 99.70% 6651 out of 6671
+    checks_failed......: 0.29%  20 out of 6671
+
+    Γ£ù hold request completed
+      Γå│  99% ΓÇö Γ£ô 6651 / Γ£ù 20
+
+    CUSTOM
+    hold_conflict_responses........: 6670   192.304437/s
+    successful_holds...............: 1      0.028831/s
+
+    HTTP
+    http_req_duration..............: avg=277.83ms min=0s      med=222.55ms max=2.2s  p(90)=413.81ms p(95)=480.28ms
+      { expected_response:true }...: avg=1.18s    min=1.18s   med=1.18s    max=1.18s p(90)=1.18s    p(95)=1.18s   
+    http_req_failed................: 99.98% 6670 out of 6671
+    http_reqs......................: 6671   192.333268/s
+
+    EXECUTION
+    iteration_duration.............: avg=374.22ms min=38.84ms med=225.63ms max=30s   p(90)=425.26ms p(95)=513.24ms
+    iterations.....................: 6671   192.333268/s
+    vus............................: 14     min=14           max=200
+    vus_max........................: 200    min=200          max=200
+
+    NETWORK
+    data_received..................: 1.8 MB 53 kB/s
+    data_sent......................: 1.2 MB 35 kB/s
+
+
+
+
+running (34.7s), 000/200 VUs, 6671 complete and 0 interrupted iterations
+default Γ£ô [ 100% ] 200 VUs  10s

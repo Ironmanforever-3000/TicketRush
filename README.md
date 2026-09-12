@@ -20,7 +20,7 @@ The Phase 1 architecture implements a strictly layered REST API exposing Venues,
 - GitHub Actions
 
 ## Current Phase
-**Phase 1: Domain & CRUD** is 100% Complete.
+**Phase 2: Concurrency & Seat Holds** — Phase 2.3 (Atomic Conditional UPDATE) complete.
 
 ## Project Structure
 Standard Maven structure with domains strictly segregated into packages (`user`, `venue`, `event`, `show`, `seat`), containing their respective Entities, Repositories, Services, DTOs, and Controllers.
@@ -31,13 +31,14 @@ Standard Maven structure with domains strictly segregated into packages (`user`,
 3. Run tests: `.\mvnw.cmd test`
 
 ## Database
-Uses PostgreSQL 16. Schema managed by Flyway (V1 through V4 migrations). Core invariants protected by constraints (e.g. `UNIQUE(show_id, row_label, seat_number)`).
+Uses PostgreSQL 16. Schema managed by Flyway (V1 through V5 migrations). Core invariants protected by constraints (e.g. `UNIQUE(show_id, row_label, seat_number)`).
 
 ## API
 - Venues: POST, GET, GET List, PATCH, DELETE
 - Events: POST, GET, GET List, PATCH, DELETE
 - Shows: POST, GET, GET List, PATCH, DELETE
 - Seatmap: GET `/api/v1/shows/{id}/seatmap`
+- Holds: POST `/api/v1/shows/{showId}/holds`
 
 ## Phase 1
 Phase 1 establishes the rock-solid CRUD foundation, database constraints, strict JSON serialization models, custom exception handlers, and bean validation rules without prematurely introducing concurrency mechanisms.
@@ -62,3 +63,11 @@ See `docs/DECISIONS.md`.
 
 ## License
 MIT License
+
+## Concurrency Experiment
+
+Phase 2 load testing demonstrates how TicketRush handles extreme contention (200 concurrent users fighting for 1 seat):
+
+* **Naive Implementation**: 200 users → multiple conflicting holds ❌ (Read-then-write race condition)
+* **SERIALIZABLE Isolation**: conflicts become transaction failures ⚠️ (Database enforces correctness but introduces ~5000 serialization errors)
+* **Conditional Atomic UPDATE**: 200 users → exactly 1 successful hold ✅ (Database evaluates WHERE status = 'AVAILABLE', clean 409 rejections)
