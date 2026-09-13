@@ -7,6 +7,8 @@ spring:
     username: ticketrush
     password: ticketrush_password
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 50
 
   jpa:
     hibernate:
@@ -34,5 +36,3 @@ management:
   endpoint:
     health:
       show-details: always
-
-

@@ -1,0 +1,24 @@
+          /\      |‾‾| /‾‾/   /‾‾/   
+     /\  /  \     |  |/  /   /  /    
+    /  \/    \    |     (   /   ‾‾\  
+   /          \   |  |\  \ |  (‾)  | 
+  / __________ \  |__| \__\ \_____/ .io
+
+  execution: local
+     script: .\load-tests\phase2\naive-hold.js
+     output: -
+
+  scenarios: (100.00%) 1 scenario, 200 max VUs, 40s max duration (incl. graceful stop):
+           * default: 200 looping VUs for 10s (gracefulStop: 30s)
+
+
+     data_received..................: 793 kB  75 kB/s
+     data_sent......................: 133 kB  13 kB/s
+     http_req_duration..............: avg=640.48ms min=13.62ms  med=539.9ms  max=3.21s    p(90)=1.12s    p(95)=1.45s   
+       { expected_response:true }...: avg=600.41ms min=13.62ms  med=508.83ms max=3.09s    p(90)=1.07s    p(95)=1.36s   
+     http_req_failed................: 4.88%   v 49        x 954 
+     http_reqs......................: 1003    95.27599/s
+     iteration_duration.............: avg=649.03ms min=14.15ms  med=540.85ms max=3.73s    p(90)=1.13s    p(95)=1.45s   
+     iterations.....................: 1003    95.27599/s
+     vus............................: 200     min=200     max=200
+     vus_max........................: 200     min=200     max=200

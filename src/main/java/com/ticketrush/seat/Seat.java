@@ -4,7 +4,6 @@ import com.ticketrush.show.Show;
 import jakarta.persistence.*;
 
 import java.time.OffsetDateTime;
-import java.util.UUID;
 
 @Entity
 @Table(
@@ -45,14 +44,13 @@ public class Seat {
     private SeatStatus status;
 
     @Column(name = "held_by")
-    private UUID heldBy;
+    private Long heldBy;
+
+    @Version
+    private Long version;
 
     @Column(name = "hold_expires_at")
     private OffsetDateTime holdExpiresAt;
-
-    @Version
-    @Column(nullable = false)
-    private Long version;
 
     public Seat() {
     }
@@ -69,8 +67,8 @@ public class Seat {
     public void setSeatNumber(Integer seatNumber) { this.seatNumber = seatNumber; }
     public SeatStatus getStatus() { return status; }
     public void setStatus(SeatStatus status) { this.status = status; }
-    public UUID getHeldBy() { return heldBy; }
-    public void setHeldBy(UUID heldBy) { this.heldBy = heldBy; }
+    public Long getHeldBy() { return heldBy; }
+    public void setHeldBy(Long heldBy) { this.heldBy = heldBy; }
     public OffsetDateTime getHoldExpiresAt() { return holdExpiresAt; }
     public void setHoldExpiresAt(OffsetDateTime holdExpiresAt) { this.holdExpiresAt = holdExpiresAt; }
     public Long getVersion() { return version; }

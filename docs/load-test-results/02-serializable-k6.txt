@@ -1,0 +1,80 @@
+
+         /\      Grafana   /ΓÇ╛ΓÇ╛/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ΓÇ╛ΓÇ╛\ 
+  /          \   |   (  |  (ΓÇ╛)  |
+ / __________ \  |_|\_\  \_____/ 
+
+
+     execution: local
+        script: /load-tests/phase2/naive-hold.js
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 200 max VUs, 40s max duration (incl. graceful stop):
+              * default: 200 looping VUs for 10s (gracefulStop: 30s)
+
+
+running (01.0s), 200/200 VUs, 0 complete and 0 interrupted iterations
+default   [  10% ] 200 VUs  01.0s/10s
+
+running (02.0s), 200/200 VUs, 237 complete and 0 interrupted iterations
+default   [  20% ] 200 VUs  02.0s/10s
+
+running (03.0s), 200/200 VUs, 631 complete and 0 interrupted iterations
+default   [  30% ] 200 VUs  03.0s/10s
+
+running (04.0s), 200/200 VUs, 1127 complete and 0 interrupted iterations
+default   [  40% ] 200 VUs  04.0s/10s
+
+running (05.0s), 200/200 VUs, 1722 complete and 0 interrupted iterations
+default   [  50% ] 200 VUs  05.0s/10s
+
+running (06.0s), 200/200 VUs, 2249 complete and 0 interrupted iterations
+default   [  60% ] 200 VUs  06.0s/10s
+
+running (07.0s), 200/200 VUs, 2750 complete and 0 interrupted iterations
+default   [  70% ] 200 VUs  07.0s/10s
+
+running (08.0s), 200/200 VUs, 3459 complete and 0 interrupted iterations
+default   [  80% ] 200 VUs  08.0s/10s
+
+running (09.0s), 200/200 VUs, 4129 complete and 0 interrupted iterations
+default   [  90% ] 200 VUs  09.0s/10s
+
+running (10.0s), 200/200 VUs, 4840 complete and 0 interrupted iterations
+default   [ 100% ] 200 VUs  10.0s/10s
+
+
+  Γûê TOTAL RESULTS 
+
+    checks_total.......: 5061    494.399791/s
+    checks_succeeded...: 100.00% 5061 out of 5061
+    checks_failed......: 0.00%   0 out of 5061
+
+    Γ£ô hold request completed
+
+    CUSTOM
+    hold_conflict_responses........: 5060   494.302102/s
+    successful_holds...............: 1      0.097688/s
+
+    HTTP
+    http_req_duration..............: avg=392.09ms min=51.39ms med=323ms    max=2.12s p(90)=522.03ms p(95)=763.66ms
+      { expected_response:true }...: avg=1.28s    min=1.28s   med=1.28s    max=1.28s p(90)=1.28s    p(95)=1.28s   
+    http_req_failed................: 99.98% 5060 out of 5061
+    http_reqs......................: 5061   494.399791/s
+
+    EXECUTION
+    iteration_duration.............: avg=399.38ms min=54.13ms med=327.26ms max=2.23s p(90)=530.51ms p(95)=778.15ms
+    iterations.....................: 5061   494.399791/s
+    vus............................: 200    min=200          max=200
+    vus_max........................: 200    min=200          max=200
+
+    NETWORK
+    data_received..................: 1.4 MB 133 kB/s
+    data_sent......................: 925 kB 90 kB/s
+
+
+
+
+running (10.2s), 000/200 VUs, 5061 complete and 0 interrupted iterations
+default Γ£ô [ 100% ] 200 VUs  10s
