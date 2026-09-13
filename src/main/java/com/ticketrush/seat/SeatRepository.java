@@ -45,4 +45,21 @@ public interface SeatRepository extends JpaRepository<Seat, Long> {
         RETURNING id
         """, nativeQuery = true)
     List<Long> releaseExpiredHolds();
+
+    @Modifying(clearAutomatically = true)
+    @Query("""
+        UPDATE Seat s
+           SET s.status = com.ticketrush.seat.SeatStatus.SOLD,
+               s.version = s.version + 1
+         WHERE s.id IN :seatIds
+           AND s.show.id = :showId
+           AND s.status = com.ticketrush.seat.SeatStatus.HELD
+           AND s.heldBy = :userId
+           AND s.holdExpiresAt > CURRENT_TIMESTAMP
+    """)
+    int confirmHeldSeats(
+        @Param("seatIds") List<Long> seatIds,
+        @Param("showId") Long showId,
+        @Param("userId") Long userId
+    );
 }

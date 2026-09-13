@@ -72,3 +72,30 @@ We intentionally do not add a distributed lock at this stage.
 Future options:
 - Redis distributed lock
 - `SELECT ... FOR UPDATE SKIP LOCKED`
+
+## 006 - Booking Idempotency
+
+Booking confirmation uses a client-provided UUID
+Idempotency-Key.
+
+The database enforces UNIQUE(idempotency_key).
+
+The application does not rely on a check-then-insert
+sequence for correctness.
+
+The booking operation is transactional:
+
+1. create booking
+2. transition HELD -> SOLD
+3. create booking_seats rows
+4. create BOOKING_CONFIRMED outbox event
+5. commit
+
+A retry using the same idempotency key returns the existing
+booking with HTTP 200.
+
+A new idempotency key competing for the same held seat
+must fail with SEAT_UNAVAILABLE.
+
+The seat update also checks ownership and expiration directly
+against the seats table.
