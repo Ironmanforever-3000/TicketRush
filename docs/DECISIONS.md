@@ -49,3 +49,26 @@ Transaction A: `5` $\rightarrow$ `9`
 Transaction B: `5` $\rightarrow$ `9`
 
 One transaction may wait for the other, but they cannot form this particular circular wait. This ordering rule is therefore a strict part of the concurrency contract for multi-seat operations.
+
+## 005 — Hold Expiry Sweeper
+
+The hold expiry sweeper runs every 10 seconds on each application instance.
+
+Current design:
+- PostgreSQL is the source of truth.
+- Expired seats are released with one conditional UPDATE.
+- The UPDATE only targets rows where:
+  - `status = 'HELD'`
+  - `hold_expires_at < now()`
+- The query uses `RETURNING id` to obtain the exact seats released.
+
+Multiple replicas may execute the sweeper simultaneously.
+
+This is currently safe because the update is conditional and idempotent:
+once one replica changes a seat from `HELD` to `AVAILABLE`, another replica no longer matches the `WHERE` clause.
+
+We intentionally do not add a distributed lock at this stage.
+
+Future options:
+- Redis distributed lock
+- `SELECT ... FOR UPDATE SKIP LOCKED`

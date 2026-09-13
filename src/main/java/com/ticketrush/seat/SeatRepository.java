@@ -31,4 +31,18 @@ public interface SeatRepository extends JpaRepository<Seat, Long> {
             @Param("availableStatus") SeatStatus availableStatus,
             @Param("status") SeatStatus status
     );
+
+    @Modifying(clearAutomatically = true)
+    @Query(value = """
+        UPDATE seats
+        SET
+            status = 'AVAILABLE',
+            held_by = NULL,
+            hold_expires_at = NULL,
+            version = version + 1
+        WHERE status = 'HELD'
+          AND hold_expires_at < now()
+        RETURNING id
+        """, nativeQuery = true)
+    List<Long> releaseExpiredHolds();
 }
