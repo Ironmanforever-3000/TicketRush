@@ -99,3 +99,17 @@ must fail with SEAT_UNAVAILABLE.
 
 The seat update also checks ownership and expiration directly
 against the seats table.
+
+## 007 - Outbox Pattern for Booking Events
+
+We use the Transactional Outbox pattern to guarantee event
+delivery without two-phase commit (2PC) or distributed transactions.
+
+The booking transaction writes a row to the outbox table.
+A scheduled worker polls for rows where published_at IS NULL,
+publishes them to the event bus, and then updates published_at.
+
+Because we publish before marking the row as published, a crash
+during the window between those two operations results in duplicate
+delivery. Therefore, the system guarantees AT-LEAST-ONCE delivery,
+and all downstream consumers must be idempotent.
