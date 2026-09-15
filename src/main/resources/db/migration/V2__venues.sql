@@ -3,5 +3,5 @@ CREATE TABLE venues (
     name VARCHAR(150) NOT NULL,
     city VARCHAR(100) NOT NULL,
     layout_json JSONB NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL
+    created_at TIMESTAMP NOT NULL
 );

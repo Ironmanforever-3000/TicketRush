@@ -5,5 +5,5 @@ CREATE TABLE events (
     description TEXT,
     category VARCHAR(100) NOT NULL,
     status VARCHAR(30) NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL
+    created_at TIMESTAMP NOT NULL
 );
