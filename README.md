@@ -10,7 +10,7 @@ Thousands of users may attempt to purchase a limited number of seats at exactly 
 The Phase 1 architecture implements a strictly layered REST API exposing Venues, Events, Shows, and Seat Tiers. Seat inventory is generated dynamically from JSON layouts and persisted transactionally using Hibernate batch inserts. The database schema is versioned sequentially with Flyway. Unidirectional child-to-parent associations prevent recursive serialization and accidental N+1 queries.
 
 ## Tech Stack
-- Java 21
+- Java 25
 - Spring Boot 4
 - PostgreSQL 16
 - Flyway
