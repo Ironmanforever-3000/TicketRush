@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.Map;
@@ -12,6 +13,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class HoldExpiryJobIntegrationTest {
 
     @Autowired
@@ -33,8 +35,8 @@ class HoldExpiryJobIntegrationTest {
         cleanupTestData();
         
         // Add basic prerequisite data
-        jdbcTemplate.update("INSERT INTO users (id, name, email) VALUES (?, 'Test Organizer', 'org9999@test.local')", testOrganizerId);
-        jdbcTemplate.update("INSERT INTO users (id, name, email) VALUES (?, 'Test User', 'user9999@test.local')", testUserId);
+        jdbcTemplate.update("INSERT INTO users (id, name, email, password_hash, role, updated_at) VALUES (?, 'Test Organizer', 'org9999@test.local', 'test', 'CUSTOMER', now())", testOrganizerId);
+        jdbcTemplate.update("INSERT INTO users (id, name, email, password_hash, role, updated_at) VALUES (?, 'Test User', 'user9999@test.local', 'test', 'CUSTOMER', now())", testUserId);
         jdbcTemplate.update("INSERT INTO venues (id, name, city, layout_json, created_at) VALUES (?, 'Test Venue', 'City', '{}', now())", testVenueId);
         jdbcTemplate.update("INSERT INTO events (id, organizer_id, title, category, status, created_at) VALUES (?, ?, 'Event', 'Cat', 'DRAFT', now())", testEventId, testOrganizerId);
         jdbcTemplate.update("INSERT INTO shows (id, event_id, venue_id, starts_at, sale_opens_at, status) VALUES (?, ?, ?, now(), now(), 'SCHEDULED')", testShowId, testEventId, testVenueId);

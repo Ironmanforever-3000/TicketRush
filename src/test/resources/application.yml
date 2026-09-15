@@ -1,4 +1,14 @@
 spring:
+  test:
+    database:
+      replace: none
   datasource:
+    url: jdbc:postgresql://localhost:5433/ticketrush?options=-c%20TimeZone%3DUTC
+    username: ticketrush
+    password: ticketrush_password
+    driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 5
+
+jwt:
+  secret: test-only-secret-test-only-secret-test-only-secret
