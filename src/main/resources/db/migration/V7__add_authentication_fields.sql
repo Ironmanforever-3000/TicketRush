@@ -1,6 +1,6 @@
 ALTER TABLE users ADD COLUMN password_hash VARCHAR(255);
 ALTER TABLE users ADD COLUMN role VARCHAR(30);
-ALTER TABLE users ADD COLUMN updated_at TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN updated_at TIMESTAMP;
 
 -- Give existing users a default role and a mock BCrypt hash for "password123"
 UPDATE users 

@@ -11,7 +11,7 @@ CREATE TABLE bookings (
 
     idempotency_key UUID NOT NULL UNIQUE,
 
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_bookings_user
         FOREIGN KEY (user_id)
@@ -61,9 +61,9 @@ CREATE TABLE outbox (
 
     payload JSONB NOT NULL,
 
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    published_at TIMESTAMPTZ NULL
+    published_at TIMESTAMP NULL
 );
 
 CREATE INDEX idx_outbox_unpublished

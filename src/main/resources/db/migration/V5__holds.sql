@@ -6,9 +6,9 @@ CREATE TABLE holds (
     show_id BIGINT NOT NULL,
     user_id BIGINT NOT NULL,
     seat_ids JSONB NOT NULL,
-    expires_at TIMESTAMPTZ NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
     status VARCHAR(20) NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_holds_show FOREIGN KEY (show_id) REFERENCES shows(id),
     CONSTRAINT fk_holds_user FOREIGN KEY (user_id) REFERENCES users(id)

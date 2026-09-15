@@ -2,9 +2,9 @@ CREATE TABLE shows (
     id BIGSERIAL PRIMARY KEY,
     event_id BIGINT NOT NULL REFERENCES events(id),
     venue_id BIGINT NOT NULL REFERENCES venues(id),
-    starts_at TIMESTAMPTZ NOT NULL,
-    sale_opens_at TIMESTAMPTZ NOT NULL,
-    sale_closes_at TIMESTAMPTZ,
+    starts_at TIMESTAMP NOT NULL,
+    sale_opens_at TIMESTAMP NOT NULL,
+    sale_closes_at TIMESTAMP,
     status VARCHAR(30) NOT NULL
 );
 
@@ -25,7 +25,7 @@ CREATE TABLE seats (
     seat_number INT NOT NULL,
     status VARCHAR(20) NOT NULL,
     held_by UUID,
-    hold_expires_at TIMESTAMPTZ,
+    hold_expires_at TIMESTAMP,
     version BIGINT NOT NULL,
     CONSTRAINT uq_show_seat UNIQUE (show_id, row_label, seat_number)
 );
