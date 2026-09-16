@@ -10,6 +10,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Locale;
+import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -48,10 +51,11 @@ class AuthServiceIntegrationTest {
 
     @Test
     void register_DuplicateEmail_ThrowsException() {
-        RegisterRequest request1 = new RegisterRequest("Bob", "bob@example.com", "StrongPassword123!");
+        String email = "bob-" + UUID.randomUUID() + "@example.com";
+        RegisterRequest request1 = new RegisterRequest("Bob", email, "StrongPassword123!");
         authService.register(request1);
 
-        RegisterRequest request2 = new RegisterRequest("Bob Two", "BOB@example.com", "AnotherPassword123!");
+        RegisterRequest request2 = new RegisterRequest("Bob Two", email.toUpperCase(Locale.ROOT), "AnotherPassword123!");
         
         assertThatThrownBy(() -> authService.register(request2))
                 .isInstanceOf(EmailAlreadyRegisteredException.class)
