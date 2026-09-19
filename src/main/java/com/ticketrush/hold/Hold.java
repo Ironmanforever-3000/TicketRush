@@ -3,8 +3,6 @@ package com.ticketrush.hold;
 import com.ticketrush.show.Show;
 import com.ticketrush.user.User;
 import jakarta.persistence.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -25,7 +23,7 @@ public class Hold {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @JdbcTypeCode(SqlTypes.JSON)
+    @Convert(converter = LongListJsonConverter.class)
     @Column(name = "seat_ids", nullable = false, columnDefinition = "jsonb")
     private List<Long> seatIds;
 

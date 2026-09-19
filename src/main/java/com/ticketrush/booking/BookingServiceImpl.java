@@ -17,9 +17,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 @Service
 public class BookingServiceImpl implements BookingService {
+
+    private static final ConcurrentMap<UUID, Object> IDEMPOTENCY_LOCKS = new ConcurrentHashMap<>();
 
     private final BookingRepository bookingRepository;
     private final BookingSeatRepository bookingSeatRepository;
@@ -46,91 +50,98 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public BookingCreationResult createBooking(Long userId, UUID idempotencyKey, BookingRequest request) {
+        Object lock = IDEMPOTENCY_LOCKS.computeIfAbsent(idempotencyKey, key -> new Object());
 
-        List<Long> seatIds = request.seatIds().stream()
-                .distinct()
-                .sorted()
-                .toList();
+        synchronized (lock) {
+            try {
+                List<Long> seatIds = request.seatIds().stream()
+                        .distinct()
+                        .sorted()
+                        .toList();
 
-        if (seatIds.isEmpty()) {
-            throw new IllegalArgumentException("At least one seat is required");
+                if (seatIds.isEmpty()) {
+                    throw new IllegalArgumentException("At least one seat is required");
+                }
+
+                // 1. Check idempotency reuse directly (optimization)
+                Optional<Booking> existing = bookingRepository.findByIdempotencyKey(idempotencyKey);
+                if (existing.isPresent()) {
+                    Booking booking = existing.get();
+                    validateIdempotencyReuse(booking, userId, request.showId(), seatIds);
+                    return new BookingCreationResult(toResponse(booking), false);
+                }
+
+                // 2. Load Show and Hold
+                Show show = showRepository.findById(request.showId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Show not found"));
+
+                Hold hold = findValidHold(userId, request.showId(), seatIds);
+
+                // 3. Calculate total
+                List<Seat> seats = seatRepository.findAllById(seatIds);
+                long totalCents = calculateTotal(seats);
+
+                // 4. Insert booking atomically
+                Optional<Long> inserted = bookingRepository.insertIfAbsent(
+                        userId,
+                        show.getId(),
+                        hold.getId(),
+                        totalCents,
+                        idempotencyKey
+                );
+
+                if (inserted.isEmpty()) {
+                    Booking duplicate = bookingRepository.findByIdempotencyKey(idempotencyKey)
+                            .orElseThrow(() -> new IllegalStateException("Booking should exist if insertIfAbsent returned empty"));
+                    validateIdempotencyReuse(duplicate, userId, request.showId(), seatIds);
+                    return new BookingCreationResult(toResponse(duplicate), false);
+                }
+
+                Long bookingId = inserted.get();
+
+                // 5. Convert HELD -> SOLD
+                int updated = seatRepository.confirmHeldSeats(seatIds, request.showId(), userId);
+                if (updated != seatIds.size()) {
+                    throw new SeatUnavailableException("One or more seats are no longer valid, or hold expired");
+                }
+
+                Booking booking = bookingRepository.findById(bookingId).orElseThrow();
+
+                // 6. Create booking_seats rows
+                List<BookingSeat> bookingSeats = new ArrayList<>();
+                for (Seat seat : seats) {
+                    BookingSeat bookingSeat = new BookingSeat();
+                    bookingSeat.setId(new BookingSeatId(booking.getId(), seat.getId()));
+                    bookingSeat.setBooking(booking);
+                    bookingSeat.setSeat(seat);
+                    bookingSeat.setPriceCents(seat.getTier().getPriceCents());
+                    bookingSeats.add(bookingSeat);
+                }
+                bookingSeatRepository.saveAll(bookingSeats);
+
+                // 7. Update booking -> CONFIRMED
+                booking.setStatus(BookingStatus.CONFIRMED);
+                booking.getBookingSeats().addAll(bookingSeats); // For response generation
+                bookingRepository.save(booking);
+
+                // 8. Write outbox event
+                String payloadJson = String.format("{\"booking_id\":%d, \"show_id\":%d, \"seat_ids\":%s, \"user_id\":%d}",
+                        booking.getId(), show.getId(), seatIds.toString(), userId);
+
+                OutboxEvent event = new OutboxEvent();
+                event.setAggregateType("BOOKING");
+                event.setAggregateId(booking.getId());
+                event.setEventType("BOOKING_CONFIRMED");
+                event.setPayload(payloadJson);
+                event.setCreatedAt(OffsetDateTime.now());
+
+                outboxRepository.save(event);
+
+                return new BookingCreationResult(toResponse(booking), true);
+            } finally {
+                IDEMPOTENCY_LOCKS.remove(idempotencyKey, lock);
+            }
         }
-
-        // 1. Check idempotency reuse directly (optimization)
-        Optional<Booking> existing = bookingRepository.findByIdempotencyKey(idempotencyKey);
-        if (existing.isPresent()) {
-            Booking booking = existing.get();
-            validateIdempotencyReuse(booking, userId, request.showId(), seatIds);
-            return new BookingCreationResult(toResponse(booking), false);
-        }
-
-        // 2. Load Show and Hold
-        Show show = showRepository.findById(request.showId())
-                .orElseThrow(() -> new ResourceNotFoundException("Show not found"));
-
-        Hold hold = findValidHold(userId, request.showId(), seatIds);
-
-        // 3. Calculate total
-        List<Seat> seats = seatRepository.findAllById(seatIds);
-        long totalCents = calculateTotal(seats);
-
-        // 4. Insert booking atomically
-        Optional<Long> inserted = bookingRepository.insertIfAbsent(
-                userId,
-                show.getId(),
-                hold.getId(),
-                totalCents,
-                idempotencyKey
-        );
-
-        if (inserted.isEmpty()) {
-            Booking duplicate = bookingRepository.findByIdempotencyKey(idempotencyKey)
-                    .orElseThrow(() -> new IllegalStateException("Booking should exist if insertIfAbsent returned empty"));
-            validateIdempotencyReuse(duplicate, userId, request.showId(), seatIds);
-            return new BookingCreationResult(toResponse(duplicate), false);
-        }
-
-        Long bookingId = inserted.get();
-
-        // 5. Convert HELD -> SOLD
-        int updated = seatRepository.confirmHeldSeats(seatIds, request.showId(), userId);
-        if (updated != seatIds.size()) {
-            throw new SeatUnavailableException("One or more seats are no longer valid, or hold expired");
-        }
-
-        Booking booking = bookingRepository.findById(bookingId).orElseThrow();
-
-        // 6. Create booking_seats rows
-        List<BookingSeat> bookingSeats = new ArrayList<>();
-        for (Seat seat : seats) {
-            BookingSeat bookingSeat = new BookingSeat();
-            bookingSeat.setId(new BookingSeatId(booking.getId(), seat.getId()));
-            bookingSeat.setBooking(booking);
-            bookingSeat.setSeat(seat);
-            bookingSeat.setPriceCents(seat.getTier().getPriceCents());
-            bookingSeats.add(bookingSeat);
-        }
-        bookingSeatRepository.saveAll(bookingSeats);
-
-        // 7. Update booking -> CONFIRMED
-        booking.setStatus(BookingStatus.CONFIRMED);
-        booking.getBookingSeats().addAll(bookingSeats); // For response generation
-        bookingRepository.save(booking);
-
-        // 8. Write outbox event
-        String payloadJson = String.format("{\"booking_id\":%d, \"show_id\":%d, \"seat_ids\":%s, \"user_id\":%d}",
-                booking.getId(), show.getId(), seatIds.toString(), userId);
-
-        OutboxEvent event = new OutboxEvent();
-        event.setAggregateType("BOOKING");
-        event.setAggregateId(booking.getId());
-        event.setEventType("BOOKING_CONFIRMED");
-        event.setPayload(payloadJson);
-        event.setCreatedAt(OffsetDateTime.now());
-
-        outboxRepository.save(event);
-
-        return new BookingCreationResult(toResponse(booking), true);
     }
 
     private Hold findValidHold(Long userId, Long showId, List<Long> seatIds) {

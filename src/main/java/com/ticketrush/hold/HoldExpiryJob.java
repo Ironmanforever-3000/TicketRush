@@ -25,11 +25,17 @@ public class HoldExpiryJob {
     @Scheduled(fixedDelay = 10_000)
     @Transactional
     public void expireHolds() {
-        List<Long> releasedSeats = seatRepository.releaseExpiredHolds();
+        List<Long> expiredSeatIds = seatRepository.findExpiredHeldSeatIds();
 
-        if (!releasedSeats.isEmpty()) {
-            log.info("Expired hold sweeper released {} seats: {}", releasedSeats.size(), releasedSeats);
-            seatEventPublisher.publishSeatsReleased(releasedSeats);
+        if (expiredSeatIds.isEmpty()) {
+            return;
+        }
+
+        int updatedRows = seatRepository.releaseHeldSeats(expiredSeatIds);
+
+        if (updatedRows > 0) {
+            log.info("Expired hold sweeper released {} seats: {}", updatedRows, expiredSeatIds);
+            seatEventPublisher.publishSeatsReleased(expiredSeatIds);
         }
     }
 }

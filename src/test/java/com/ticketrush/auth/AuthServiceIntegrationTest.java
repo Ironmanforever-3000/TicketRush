@@ -5,14 +5,19 @@ import com.ticketrush.user.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Locale;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
 @Transactional
 class AuthServiceIntegrationTest {
@@ -46,10 +51,11 @@ class AuthServiceIntegrationTest {
 
     @Test
     void register_DuplicateEmail_ThrowsException() {
-        RegisterRequest request1 = new RegisterRequest("Bob", "bob@example.com", "StrongPassword123!");
+        String email = "bob-" + UUID.randomUUID() + "@example.com";
+        RegisterRequest request1 = new RegisterRequest("Bob", email, "StrongPassword123!");
         authService.register(request1);
 
-        RegisterRequest request2 = new RegisterRequest("Bob Two", "BOB@example.com", "AnotherPassword123!");
+        RegisterRequest request2 = new RegisterRequest("Bob Two", email.toUpperCase(Locale.ROOT), "AnotherPassword123!");
         
         assertThatThrownBy(() -> authService.register(request2))
                 .isInstanceOf(EmailAlreadyRegisteredException.class)
@@ -69,5 +75,32 @@ class AuthServiceIntegrationTest {
         
         User savedUser = userRepository.findById(response.userId()).orElseThrow();
         assertThat(savedUser.getRole()).isEqualTo(Role.CUSTOMER);
+    }
+
+    @Test
+    void login_Success() {
+        authService.register(new RegisterRequest("Charlie", "charlie@example.com", "Secret123!"));
+
+        LoginResponse response = authService.login(new LoginRequest("CHARLIE@example.com", "Secret123!"));
+
+        assertThat(response.accessToken()).isNotBlank();
+        assertThat(response.tokenType()).isEqualTo("Bearer");
+        assertThat(response.expiresIn()).isEqualTo(900);
+    }
+
+    @Test
+    void login_InvalidPassword_ThrowsException() {
+        authService.register(new RegisterRequest("Dave", "dave@example.com", "Secret123!"));
+
+        assertThatThrownBy(() -> authService.login(new LoginRequest("dave@example.com", "WrongPassword!")))
+                .isInstanceOf(InvalidCredentialsException.class)
+                .hasMessageContaining("Invalid email or password");
+    }
+
+    @Test
+    void login_UserNotFound_ThrowsException() {
+        assertThatThrownBy(() -> authService.login(new LoginRequest("nobody@example.com", "Secret123!")))
+                .isInstanceOf(InvalidCredentialsException.class)
+                .hasMessageContaining("Invalid email or password");
     }
 }

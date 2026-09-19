@@ -36,3 +36,6 @@ management:
   endpoint:
     health:
       show-details: always
+
+jwt:
+  secret: "your-256-bit-secret-your-256-bit-secret"
