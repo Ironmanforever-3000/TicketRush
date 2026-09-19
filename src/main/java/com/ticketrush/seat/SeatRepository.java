@@ -32,6 +32,14 @@ public interface SeatRepository extends JpaRepository<Seat, Long> {
             @Param("status") SeatStatus status
     );
 
+    @Query(value = """
+        SELECT id
+          FROM seats
+         WHERE status = 'HELD'
+           AND hold_expires_at < CURRENT_TIMESTAMP
+        """, nativeQuery = true)
+    List<Long> findExpiredHeldSeatIds();
+
     @Modifying(clearAutomatically = true)
     @Query(value = """
         UPDATE seats
@@ -40,11 +48,10 @@ public interface SeatRepository extends JpaRepository<Seat, Long> {
             held_by = NULL,
             hold_expires_at = NULL,
             version = version + 1
-        WHERE status = 'HELD'
-          AND hold_expires_at < now()
-        RETURNING id
+        WHERE id IN :seatIds
+          AND status = 'HELD'
         """, nativeQuery = true)
-    List<Long> releaseExpiredHolds();
+    int releaseHeldSeats(@Param("seatIds") List<Long> seatIds);
 
     @Modifying(clearAutomatically = true)
     @Query("""

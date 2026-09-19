@@ -35,8 +35,8 @@ class HoldExpiryJobIntegrationTest {
         cleanupTestData();
         
         // Add basic prerequisite data
-        jdbcTemplate.update("INSERT INTO users (id, name, email, password_hash, role, updated_at) VALUES (?, 'Test Organizer', 'org9999@test.local', 'test', 'CUSTOMER', now())", testOrganizerId);
-        jdbcTemplate.update("INSERT INTO users (id, name, email, password_hash, role, updated_at) VALUES (?, 'Test User', 'user9999@test.local', 'test', 'CUSTOMER', now())", testUserId);
+        jdbcTemplate.update("INSERT INTO users (id, name, email, password_hash, role, created_at, updated_at, is_active) VALUES (?, 'Test Organizer', 'org9999@test.local', 'test', 'CUSTOMER', now(), now(), true)", testOrganizerId);
+        jdbcTemplate.update("INSERT INTO users (id, name, email, password_hash, role, created_at, updated_at, is_active) VALUES (?, 'Test User', 'user9999@test.local', 'test', 'CUSTOMER', now(), now(), true)", testUserId);
         jdbcTemplate.update("INSERT INTO venues (id, name, city, layout_json, created_at) VALUES (?, 'Test Venue', 'City', '{}', now())", testVenueId);
         jdbcTemplate.update("INSERT INTO events (id, organizer_id, title, category, status, created_at) VALUES (?, ?, 'Event', 'Cat', 'DRAFT', now())", testEventId, testOrganizerId);
         jdbcTemplate.update("INSERT INTO shows (id, event_id, venue_id, starts_at, sale_opens_at, status) VALUES (?, ?, ?, now(), now(), 'SCHEDULED')", testShowId, testEventId, testVenueId);
@@ -46,25 +46,25 @@ class HoldExpiryJobIntegrationTest {
         
         // 99042: Expired HELD seat
         jdbcTemplate.update(
-            "INSERT INTO seats (id, show_id, tier_id, row_label, seat_number, status, held_by, hold_expires_at, version) VALUES (?, ?, ?, ?, ?, ?, ?, now() - interval '1 minute', 0)",
+            "INSERT INTO seats (id, show_id, tier_id, row_label, seat_number, status, held_by, hold_expires_at, version) VALUES (?, ?, ?, ?, ?, ?, ?, DATEADD('MINUTE', -1, CURRENT_TIMESTAMP), 0)",
             99042L, testShowId, testTierId, "A", 1, "HELD", testUserId
         );
         
         // 99043: Non-expired HELD seat (future expiry)
         jdbcTemplate.update(
-            "INSERT INTO seats (id, show_id, tier_id, row_label, seat_number, status, held_by, hold_expires_at, version) VALUES (?, ?, ?, ?, ?, ?, ?, now() + interval '10 minutes', 0)",
+            "INSERT INTO seats (id, show_id, tier_id, row_label, seat_number, status, held_by, hold_expires_at, version) VALUES (?, ?, ?, ?, ?, ?, ?, DATEADD('MINUTE', 10, CURRENT_TIMESTAMP), 0)",
             99043L, testShowId, testTierId, "A", 2, "HELD", testUserId
         );
         
         // 99044: Expired SOLD seat
         jdbcTemplate.update(
-            "INSERT INTO seats (id, show_id, tier_id, row_label, seat_number, status, held_by, hold_expires_at, version) VALUES (?, ?, ?, ?, ?, ?, NULL, now() - interval '10 minutes', 0)",
+            "INSERT INTO seats (id, show_id, tier_id, row_label, seat_number, status, held_by, hold_expires_at, version) VALUES (?, ?, ?, ?, ?, ?, NULL, DATEADD('MINUTE', -10, CURRENT_TIMESTAMP), 0)",
             99044L, testShowId, testTierId, "A", 3, "SOLD"
         );
         
         // 99045: Another expired HELD seat
         jdbcTemplate.update(
-            "INSERT INTO seats (id, show_id, tier_id, row_label, seat_number, status, held_by, hold_expires_at, version) VALUES (?, ?, ?, ?, ?, ?, ?, now() - interval '2 minutes', 0)",
+            "INSERT INTO seats (id, show_id, tier_id, row_label, seat_number, status, held_by, hold_expires_at, version) VALUES (?, ?, ?, ?, ?, ?, ?, DATEADD('MINUTE', -2, CURRENT_TIMESTAMP), 0)",
             99045L, testShowId, testTierId, "A", 4, "HELD", testUserId
         );
     }

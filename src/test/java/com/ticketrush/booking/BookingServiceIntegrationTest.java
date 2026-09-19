@@ -49,35 +49,35 @@ class BookingServiceIntegrationTest {
     void setupTestData() {
         cleanupTestData();
 
-        jdbcTemplate.update("INSERT INTO users (id, name, email, password_hash, role, updated_at) VALUES (?, 'Test User', 'user99999@test.local', 'test', 'CUSTOMER', now())", testUserId);
-        jdbcTemplate.update("INSERT INTO users (id, name, email, password_hash, role, updated_at) VALUES (?, 'Other User', 'other99999@test.local', 'test', 'CUSTOMER', now())", testOtherUserId);
+        jdbcTemplate.update("INSERT INTO users (id, name, email, password_hash, role, created_at, updated_at, is_active) VALUES (?, 'Test User', 'user99999@test.local', 'test', 'CUSTOMER', now(), now(), true)", testUserId);
+        jdbcTemplate.update("INSERT INTO users (id, name, email, password_hash, role, created_at, updated_at, is_active) VALUES (?, 'Other User', 'other99999@test.local', 'test', 'CUSTOMER', now(), now(), true)", testOtherUserId);
         jdbcTemplate.update("INSERT INTO venues (id, name, city, layout_json, created_at) VALUES (?, 'Test Venue', 'City', '{}', now())", testVenueId);
         jdbcTemplate.update("INSERT INTO events (id, organizer_id, title, category, status, created_at) VALUES (?, ?, 'Event', 'Cat', 'DRAFT', now())", testEventId, testUserId);
         jdbcTemplate.update("INSERT INTO shows (id, event_id, venue_id, starts_at, sale_opens_at, status) VALUES (?, ?, ?, now(), now(), 'SCHEDULED')", testShowId, testEventId, testVenueId);
         jdbcTemplate.update("INSERT INTO seat_tiers (id, show_id, name, price_cents, currency) VALUES (?, ?, 'Standard', 1000, 'USD')", testTierId, testShowId);
         
         String seatsJson = String.format("[%d, %d, %d, %d]", s1, s2, s3, s4);
-        jdbcTemplate.update("INSERT INTO holds (id, show_id, user_id, seat_ids, status, expires_at, created_at) VALUES (?, ?, ?, ?::jsonb, 'ACTIVE', now() + interval '10 minutes', now())", 
+        jdbcTemplate.update("INSERT INTO holds (id, show_id, user_id, seat_ids, status, expires_at, created_at) VALUES (?, ?, ?, ?, 'ACTIVE', DATEADD('MINUTE', 10, CURRENT_TIMESTAMP), CURRENT_TIMESTAMP)", 
             testHoldId, testShowId, testUserId, seatsJson);
 
         // Standard setup: Seats s1, s2 HELD by user
-        jdbcTemplate.update("INSERT INTO seats (id, show_id, tier_id, row_label, seat_number, status, held_by, hold_expires_at, version) VALUES (?, ?, ?, 'A', 1, 'HELD', ?, now() + interval '10 minutes', 0)", s1, testShowId, testTierId, testUserId);
-        jdbcTemplate.update("INSERT INTO seats (id, show_id, tier_id, row_label, seat_number, status, held_by, hold_expires_at, version) VALUES (?, ?, ?, 'A', 2, 'HELD', ?, now() + interval '10 minutes', 0)", s2, testShowId, testTierId, testUserId);
+        jdbcTemplate.update("INSERT INTO seats (id, show_id, tier_id, row_label, seat_number, status, held_by, hold_expires_at, version) VALUES (?, ?, ?, 'A', 1, 'HELD', ?, DATEADD('MINUTE', 10, CURRENT_TIMESTAMP), 0)", s1, testShowId, testTierId, testUserId);
+        jdbcTemplate.update("INSERT INTO seats (id, show_id, tier_id, row_label, seat_number, status, held_by, hold_expires_at, version) VALUES (?, ?, ?, 'A', 2, 'HELD', ?, DATEADD('MINUTE', 10, CURRENT_TIMESTAMP), 0)", s2, testShowId, testTierId, testUserId);
         
         // s3 is AVAILABLE
         jdbcTemplate.update("INSERT INTO seats (id, show_id, tier_id, row_label, seat_number, status, held_by, hold_expires_at, version) VALUES (?, ?, ?, 'A', 3, 'AVAILABLE', NULL, NULL, 0)", s3, testShowId, testTierId);
         
         // s4 is HELD but expired
-        jdbcTemplate.update("INSERT INTO seats (id, show_id, tier_id, row_label, seat_number, status, held_by, hold_expires_at, version) VALUES (?, ?, ?, 'A', 4, 'HELD', ?, now() - interval '10 minutes', 0)", s4, testShowId, testTierId, testUserId);
+        jdbcTemplate.update("INSERT INTO seats (id, show_id, tier_id, row_label, seat_number, status, held_by, hold_expires_at, version) VALUES (?, ?, ?, 'A', 4, 'HELD', ?, DATEADD('MINUTE', -10, CURRENT_TIMESTAMP), 0)", s4, testShowId, testTierId, testUserId);
 
         // s5 is SOLD
-        jdbcTemplate.update("INSERT INTO seats (id, show_id, tier_id, row_label, seat_number, status, held_by, hold_expires_at, version) VALUES (?, ?, ?, 'A', 5, 'SOLD', ?, now() + interval '10 minutes', 0)", s5, testShowId, testTierId, testUserId);
+        jdbcTemplate.update("INSERT INTO seats (id, show_id, tier_id, row_label, seat_number, status, held_by, hold_expires_at, version) VALUES (?, ?, ?, 'A', 5, 'SOLD', ?, DATEADD('MINUTE', 10, CURRENT_TIMESTAMP), 0)", s5, testShowId, testTierId, testUserId);
     }
 
     @AfterEach
     void cleanupTestData() {
         // Use IN clause directly for all our test seats
-        jdbcTemplate.update("DELETE FROM outbox WHERE aggregate_type = 'BOOKING' AND payload::text LIKE '%99999%'");
+        jdbcTemplate.update("DELETE FROM outbox WHERE aggregate_type = 'BOOKING' AND CAST(payload AS VARCHAR) LIKE '%99999%'");
         jdbcTemplate.update("DELETE FROM booking_seats WHERE seat_id IN (?, ?, ?, ?, ?)", s1, s2, s3, s4, s5);
         jdbcTemplate.update("DELETE FROM bookings WHERE show_id = ?", testShowId);
         jdbcTemplate.update("DELETE FROM holds WHERE show_id = ?", testShowId);

@@ -81,17 +81,17 @@ class OutboxIntegrationTest {
         cleanupTestData();
         testPublisher.reset();
 
-        jdbcTemplate.update("INSERT INTO users (id, name, email, password_hash, role, updated_at) VALUES (?, 'Test User', 'user99998@test.local', 'test', 'CUSTOMER', now())", testUserId);
+        jdbcTemplate.update("INSERT INTO users (id, name, email, password_hash, role, created_at, updated_at, is_active) VALUES (?, 'Test User', 'user99998@test.local', 'test', 'CUSTOMER', now(), now(), true)", testUserId);
         jdbcTemplate.update("INSERT INTO venues (id, name, city, layout_json, created_at) VALUES (?, 'Test Venue', 'City', '{}', now())", testVenueId);
         jdbcTemplate.update("INSERT INTO events (id, organizer_id, title, category, status, created_at) VALUES (?, ?, 'Event', 'Cat', 'DRAFT', now())", testEventId, testUserId);
         jdbcTemplate.update("INSERT INTO shows (id, event_id, venue_id, starts_at, sale_opens_at, status) VALUES (?, ?, ?, now(), now(), 'SCHEDULED')", testShowId, testEventId, testVenueId);
         jdbcTemplate.update("INSERT INTO seat_tiers (id, show_id, name, price_cents, currency) VALUES (?, ?, 'Standard', 1000, 'USD')", testTierId, testShowId);
         
         String seatsJson = String.format("[%d]", seatId1);
-        jdbcTemplate.update("INSERT INTO holds (id, show_id, user_id, seat_ids, status, expires_at, created_at) VALUES (?, ?, ?, ?::jsonb, 'ACTIVE', now() + interval '10 minutes', now())", 
+        jdbcTemplate.update("INSERT INTO holds (id, show_id, user_id, seat_ids, status, expires_at, created_at) VALUES (?, ?, ?, ?, 'ACTIVE', DATEADD('MINUTE', 10, CURRENT_TIMESTAMP), CURRENT_TIMESTAMP)", 
             testHoldId, testShowId, testUserId, seatsJson);
 
-        jdbcTemplate.update("INSERT INTO seats (id, show_id, tier_id, row_label, seat_number, status, held_by, hold_expires_at, version) VALUES (?, ?, ?, 'A', 1, 'HELD', ?, now() + interval '10 minutes', 0)", seatId1, testShowId, testTierId, testUserId);
+        jdbcTemplate.update("INSERT INTO seats (id, show_id, tier_id, row_label, seat_number, status, held_by, hold_expires_at, version) VALUES (?, ?, ?, 'A', 1, 'HELD', ?, DATEADD('MINUTE', 10, CURRENT_TIMESTAMP), 0)", seatId1, testShowId, testTierId, testUserId);
     }
 
     @AfterEach
