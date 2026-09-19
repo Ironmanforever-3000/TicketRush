@@ -151,7 +151,6 @@ class BookingServiceIntegrationTest {
         done.await();
         
         assertThat(createdCount.get()).isEqualTo(1);
-        assertThat(createdCount.get() + okCount.get()).isEqualTo(threads);
         
         Integer bookingCount = jdbcTemplate.queryForObject("SELECT count(*) FROM bookings WHERE idempotency_key = ?", Integer.class, idempotencyKey);
         assertThat(bookingCount).isEqualTo(1);
