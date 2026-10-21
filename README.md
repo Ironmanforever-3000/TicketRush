@@ -20,7 +20,7 @@ The Phase 1 architecture implements a strictly layered REST API exposing Venues,
 - GitHub Actions
 
 ## Current Phase
-**Phase 2: Concurrency & Seat Holds** — Phase 2.3 (Atomic Conditional UPDATE) complete.
+**Phase 3.4**: Role-Based Access Control (RBAC), Endpoint Authorization, and Security Hardening complete (43/43 tests passing). Next: **Phase 4** (Rate Limiting & Caching).
 
 ## Project Structure
 Standard Maven structure with domains strictly segregated into packages (`user`, `venue`, `event`, `show`, `seat`), containing their respective Entities, Repositories, Services, DTOs, and Controllers.
@@ -31,7 +31,7 @@ Standard Maven structure with domains strictly segregated into packages (`user`,
 3. Run tests: `.\mvnw.cmd test`
 
 ## Database
-Uses PostgreSQL 16. Schema managed by Flyway (V1 through V5 migrations). Core invariants protected by constraints (e.g. `UNIQUE(show_id, row_label, seat_number)`).
+Uses PostgreSQL 16. Schema managed by Flyway (V1 through V8 migrations). Core invariants protected by constraints (e.g. `UNIQUE(show_id, row_label, seat_number)` and `UNIQUE(user_id, idempotency_key)`).
 
 ## API
 - Venues: POST, GET, GET List, PATCH, DELETE
@@ -56,18 +56,20 @@ We have proven the ability to generate a 500-seat show reliably, and validated a
 ## Design Decisions
 See `docs/DECISIONS.md`.
 
-## Future Phases
-- Phase 2: Concurrency, Seat Holds, Optimistic & Pessimistic Locking.
-- Phase 3: Authentication and Security.
-- Phase 4: Rate Limiting and Caching.
+## Phases & Roadmap
+- ✅ **Phase 1**: Foundations & Core CRUD (Venues, Events, Shows, dynamic Seat generation with batching & N+1 prevention).
+- ✅ **Phase 2**: High Concurrency & Resiliency (Atomic seat holds, deadlock prevention, hold expiry sweeper, idempotent booking confirmation, and transactional outbox).
+- ✅ **Phase 3**: Authentication & Security (BCrypt hashing, JWT authentication, refresh token rotation/revocation, RBAC & endpoint protection).
+- 🔜 **Phase 4**: Rate Limiting & Caching (Redis/Bucket4j rate limiting, distributed caching for live seat availability, flash-sale traffic protection).
 
 ## License
 MIT License
 
-## Concurrency Experiment
+## Concurrency
 
-Phase 2 load testing demonstrates how TicketRush handles extreme contention (200 concurrent users fighting for 1 seat):
+Phase 2 handles extreme contention:
 
 * **Naive Implementation**: 200 users → multiple conflicting holds ❌ (Read-then-write race condition)
-* **SERIALIZABLE Isolation**: conflicts become transaction failures ⚠️ (Database enforces correctness but introduces ~5000 serialization errors)
+* **SERIALIZABLE Isolation**: conflicts become transaction failures ⚠️ (Database enforces correctness but introduces serialization errors `SQLSTATE 40001` that must be retried. *Note: this is distinct from deadlocks `40P01`, which are caused by lock-ordering inversion*).
 * **Conditional Atomic UPDATE**: 200 users → exactly 1 successful hold ✅ (Database evaluates WHERE status = 'AVAILABLE', clean 409 rejections)
+* **Deadlock Prevention**: Sorting seat IDs and locking via `SELECT ... FOR UPDATE` ensures deterministic lock acquisition, preventing circular waits.

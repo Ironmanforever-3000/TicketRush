@@ -131,10 +131,10 @@ public class ShowServiceImpl implements ShowService {
     @Override
     @Transactional(readOnly = true)
     public SeatMapResponse getSeatMap(Long id) {
-        Show show = findShowOrThrow(id);
+        findShowOrThrow(id);
         List<Seat> seats = seatRepository.findByShowIdOrderByRowLabelAscSeatNumberAsc(id);
         List<SeatResponse> seatResponses = seats.stream()
-                .map(seat -> new SeatResponse(
+                .<SeatResponse>map(seat -> new SeatResponse(
                         seat.getId(),
                         seat.getRowLabel(),
                         seat.getSeatNumber(),

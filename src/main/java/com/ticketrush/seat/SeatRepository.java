@@ -69,4 +69,12 @@ public interface SeatRepository extends JpaRepository<Seat, Long> {
         @Param("showId") Long showId,
         @Param("userId") Long userId
     );
+
+    @Query(value = """
+        SELECT id FROM seats 
+        WHERE id = ANY(:seatIds) 
+        ORDER BY id 
+        FOR UPDATE
+    """, nativeQuery = true)
+    List<Long> lockSeatsForUpdate(@Param("seatIds") List<Long> seatIds);
 }

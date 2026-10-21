@@ -20,7 +20,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
     "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
     "spring.flyway.enabled=false",
     "spring.jpa.hibernate.ddl-auto=create-drop",
-    "jwt.secret=test-only-secret-test-only-secret-test-only-secret"
+    "app.jwt.secret-base64=dGVzdC1vbmx5LXNlY3JldC10ZXN0LW9ubHktc2VjcmV0LXRlc3Qtb25seS1zZWNyZXQ=",
+    "app.jwt.issuer=ticketrush-api",
+    "app.jwt.access-token-expiration=900"
 })
 class TicketRushApplicationTests {
 

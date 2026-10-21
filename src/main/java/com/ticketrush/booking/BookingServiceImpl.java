@@ -12,8 +12,13 @@ import com.ticketrush.seat.SeatRepository;
 import com.ticketrush.seat.SeatUnavailableException;
 import com.ticketrush.show.Show;
 import com.ticketrush.show.ShowRepository;
+import com.ticketrush.ticket.TicketRepository;
+import com.ticketrush.ticket.TicketService;
+import com.ticketrush.ticket.TicketStatus;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
 import java.util.*;
@@ -31,6 +36,8 @@ public class BookingServiceImpl implements BookingService {
     private final SeatRepository seatRepository;
     private final HoldRepository holdRepository;
     private final ShowRepository showRepository;
+    private final TicketService ticketService;
+    private final TicketRepository ticketRepository;
 
     public BookingServiceImpl(
             BookingRepository bookingRepository,
@@ -38,13 +45,17 @@ public class BookingServiceImpl implements BookingService {
             OutboxRepository outboxRepository,
             SeatRepository seatRepository,
             HoldRepository holdRepository,
-            ShowRepository showRepository) {
+            ShowRepository showRepository,
+            TicketService ticketService,
+            TicketRepository ticketRepository) {
         this.bookingRepository = bookingRepository;
         this.bookingSeatRepository = bookingSeatRepository;
         this.outboxRepository = outboxRepository;
         this.seatRepository = seatRepository;
         this.holdRepository = holdRepository;
         this.showRepository = showRepository;
+        this.ticketService = ticketService;
+        this.ticketRepository = ticketRepository;
     }
 
     @Override
@@ -64,7 +75,7 @@ public class BookingServiceImpl implements BookingService {
                 }
 
                 // 1. Check idempotency reuse directly (optimization)
-                Optional<Booking> existing = bookingRepository.findByIdempotencyKey(idempotencyKey);
+                Optional<Booking> existing = bookingRepository.findByUserIdAndIdempotencyKey(userId, idempotencyKey);
                 if (existing.isPresent()) {
                     Booking booking = existing.get();
                     validateIdempotencyReuse(booking, userId, request.showId(), seatIds);
@@ -91,7 +102,7 @@ public class BookingServiceImpl implements BookingService {
                 );
 
                 if (inserted.isEmpty()) {
-                    Booking duplicate = bookingRepository.findByIdempotencyKey(idempotencyKey)
+                    Booking duplicate = bookingRepository.findByUserIdAndIdempotencyKey(userId, idempotencyKey)
                             .orElseThrow(() -> new IllegalStateException("Booking should exist if insertIfAbsent returned empty"));
                     validateIdempotencyReuse(duplicate, userId, request.showId(), seatIds);
                     return new BookingCreationResult(toResponse(duplicate), false);
@@ -118,6 +129,7 @@ public class BookingServiceImpl implements BookingService {
                     bookingSeats.add(bookingSeat);
                 }
                 bookingSeatRepository.saveAll(bookingSeats);
+                ticketService.issueForBooking(booking.getId(), show.getId(), seatIds);
 
                 // 7. Update booking -> CONFIRMED
                 booking.setStatus(BookingStatus.CONFIRMED);
@@ -187,5 +199,46 @@ public class BookingServiceImpl implements BookingService {
                 booking.getTotalCents(),
                 booking.getStatus().name()
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BookingResponse> getUserBookings(Long userId) {
+        return bookingRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BookingResponse getBookingById(Long userId, Long bookingId, boolean isAdmin) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+        if (!isAdmin && !booking.getUser().getId().equals(userId)) {
+            throw new ResourceNotFoundException("Booking not found");
+        }
+        return toResponse(booking);
+    }
+
+    @Override
+    @Transactional
+    public BookingResponse cancelBooking(Long userId, Long bookingId, boolean isAdmin) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+        if (!isAdmin && !booking.getUser().getId().equals(userId)) {
+            throw new ResourceNotFoundException("Booking not found");
+        }
+        if (booking.getStatus() == BookingStatus.CANCELLED) {
+            return toResponse(booking);
+        }
+        boolean hasUsedTickets = ticketRepository.findByBookingId(bookingId).stream()
+                .anyMatch(t -> t.getStatus() == TicketStatus.USED);
+        if (hasUsedTickets) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot cancel booking with used tickets");
+        }
+        ticketRepository.cancelValidByBooking(bookingId);
+        booking.setStatus(BookingStatus.CANCELLED);
+        bookingRepository.save(booking);
+        return toResponse(booking);
     }
 }
