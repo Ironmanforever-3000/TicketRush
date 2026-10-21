@@ -11,7 +11,12 @@ class JwtConfigTest {
     void roleClaimBecomesRoleAuthority() {
         Jwt jwt = Jwt.withTokenValue("t").header("alg", "HS256").subject("123").claim("role", "CUSTOMER").build();
         var auth = new SecurityBeansConfig().jwtAuthenticationConverter().convert(jwt);
-        var roles = auth.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList();
-        assertThat(roles).contains("ROLE_CUSTOMER");
+        boolean hasCustomerRole = false;
+        for (GrantedAuthority ga : auth.getAuthorities()) {
+            if (ga != null && "ROLE_CUSTOMER".equals(ga.getAuthority())) {
+                hasCustomerRole = true;
+            }
+        }
+        assertThat(hasCustomerRole).isTrue();
     }
 }

@@ -1,6 +1,5 @@
 package com.ticketrush.concurrency;
 
-import com.ticketrush.auth.RefreshTokenGenerator;
 import com.ticketrush.auth.RefreshTokenService;
 import com.ticketrush.user.User;
 import com.ticketrush.user.UserRepository;
