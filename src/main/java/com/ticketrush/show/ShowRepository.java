@@ -11,4 +11,6 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
 
     @EntityGraph(attributePaths = {"event", "venue"})
     Page<Show> findAll(Pageable pageable);
+
+    boolean existsByIdAndEvent_Organizer_Id(Long showId, Long organizerId);
 }

@@ -33,6 +33,7 @@ public class JwtService {
                 .issuedAt(now)
                 .expiresAt(now.plusSeconds(expirationSeconds))
                 .subject(email)
+                .claim("email", email)
                 .claim("role", role)
                 .claim("userId", userId)
                 .build();

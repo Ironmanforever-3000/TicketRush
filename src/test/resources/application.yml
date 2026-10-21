@@ -21,3 +21,8 @@ app:
     issuer: ticketrush-api
     secret-base64: dGVzdC1vbmx5LXNlY3JldC10ZXN0LW9ubHktc2VjcmV0LXRlc3Qtb25seS1zZWNyZXQ=
     access-token-expiration: 900
+  ticket:
+    secret: "test-ticket-secret-32-bytes-long-123456"
+  checkin:
+    opens-before-start: PT3H
+    closes-after-start: PT12H

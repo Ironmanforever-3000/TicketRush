@@ -134,7 +134,7 @@ public class ShowServiceImpl implements ShowService {
         findShowOrThrow(id);
         List<Seat> seats = seatRepository.findByShowIdOrderByRowLabelAscSeatNumberAsc(id);
         List<SeatResponse> seatResponses = seats.stream()
-                .map(seat -> new SeatResponse(
+                .<SeatResponse>map(seat -> new SeatResponse(
                         seat.getId(),
                         seat.getRowLabel(),
                         seat.getSeatNumber(),

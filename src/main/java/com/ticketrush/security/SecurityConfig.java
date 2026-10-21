@@ -25,13 +25,15 @@ public class SecurityConfig {
             .exceptionHandling(e -> e.authenticationEntryPoint(errors).accessDeniedHandler(errors))
             .authorizeHttpRequests(auth -> auth
                 // public
-                .requestMatchers("/api/v1/auth/**", "/health", "/actuator/**").permitAll()
+                .requestMatchers("/api/v1/auth/**", "/health", "/actuator/**", "/gate.html").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/events/**", "/api/v1/venues/**", "/api/v1/shows/**").permitAll()
                 // admin-only
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                 // buying: must come BEFORE the generic POST rules
                 .requestMatchers(HttpMethod.POST, "/api/v1/shows/*/holds").hasAnyRole("CUSTOMER", "ORGANIZER", "ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/v1/shows/*/checkin").hasAnyRole("ORGANIZER", "ADMIN")
                 .requestMatchers("/api/v1/bookings/**").hasAnyRole("CUSTOMER", "ORGANIZER", "ADMIN")
+                .requestMatchers("/api/v1/tickets/**").hasAnyRole("CUSTOMER", "ORGANIZER", "ADMIN")
                 // catalogue writes
                 .requestMatchers(HttpMethod.POST, "/api/v1/events", "/api/v1/venues", "/api/v1/shows").hasAnyRole("ORGANIZER", "ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/v1/events/*", "/api/v1/venues/*", "/api/v1/shows/*").hasAnyRole("ORGANIZER", "ADMIN")

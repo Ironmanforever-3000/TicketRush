@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TicketRush - Gate Scanner</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --accent: #6366f1;
+            --text: #f8fafc;
+            --success: #22c55e;
+            --error: #ef4444;
+            --warning: #f59e0b;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 480px;
+        }
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+        .config-card {
+            background: var(--card-bg);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .field {
+            margin-bottom: 0.75rem;
+        }
+        label {
+            display: block;
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-bottom: 0.25rem;
+        }
+        input {
+            width: 100%;
+            padding: 0.5rem;
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: #fff;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 0.9rem;
+        }
+        #reader {
+            width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #000;
+        }
+        .status-card {
+            margin-top: 1rem;
+            padding: 1.25rem;
+            border-radius: 8px;
+            text-align: center;
+            display: none;
+            animation: fadeIn 0.2s ease-in-out;
+        }
+        .admit {
+            background: #14532d;
+            border: 2px solid var(--success);
+            color: #f0fdf4;
+        }
+        .rejected {
+            background: #7f1d1d;
+            border: 2px solid var(--error);
+            color: #fef2f2;
+        }
+        .status-title {
+            font-size: 1.6rem;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            margin: 0 0 0.5rem 0;
+        }
+        .seat-badge {
+            font-size: 1.2rem;
+            background: rgba(0,0,0,0.3);
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            margin-top: 0.5rem;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>TicketRush Gate Scanner</h1>
+
+    <div class="config-card">
+        <div class="field">
+            <label for="showId">Show ID</label>
+            <input type="number" id="showId" placeholder="e.g. 1">
+        </div>
+        <div class="field">
+            <label for="staffToken">Staff JWT Bearer Token</label>
+            <input type="password" id="staffToken" placeholder="Paste Staff / Organizer / Admin JWT">
+        </div>
+    </div>
+
+    <div id="reader"></div>
+
+    <div id="statusCard" class="status-card">
+        <div id="statusTitle" class="status-title">ADMIT</div>
+        <div id="statusMessage">Code scanned successfully</div>
+        <div id="seatInfo" class="seat-badge">Seat: A-12 (VIP)</div>
+    </div>
+</div>
+
+<script>
+    const showIdInput = document.getElementById("showId");
+    const staffTokenInput = document.getElementById("staffToken");
+    const statusCard = document.getElementById("statusCard");
+    const statusTitle = document.getElementById("statusTitle");
+    const statusMessage = document.getElementById("statusMessage");
+    const seatInfo = document.getElementById("seatInfo");
+
+    showIdInput.value = localStorage.getItem("tr_gate_show_id") || "1";
+    staffTokenInput.value = localStorage.getItem("tr_gate_token") || "";
+
+    showIdInput.addEventListener("change", () => localStorage.setItem("tr_gate_show_id", showIdInput.value));
+    staffTokenInput.addEventListener("change", () => localStorage.setItem("tr_gate_token", staffTokenInput.value));
+
+    let lastScanTime = 0;
+
+    async function onScanSuccess(decodedText) {
+        const now = Date.now();
+        if (now - lastScanTime < 2500) return; // Debounce rapid re-scans
+        lastScanTime = now;
+
+        const showId = showIdInput.value.trim();
+        const token = staffTokenInput.value.trim();
+
+        if (!showId || !token) {
+            showStatus("ERROR", "Please set Show ID and JWT token", null, false);
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/v1/shows/${showId}/checkin`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": token.startsWith("Bearer ") ? token : `Bearer ${token}`
+                },
+                body: JSON.stringify({ code: decodedText })
+            });
+
+            const data = await res.json().catch(() => null);
+
+            if (res.status === 200 && data && data.result === "ADMIT") {
+                showStatus("ADMIT", data.message || "Entry Granted", `Seat: ${data.seat || "?"} (${data.tier || "Standard"})`, true);
+            } else if (data && data.result) {
+                showStatus(data.result, data.message || "Denied", data.seat ? `Seat: ${data.seat}` : null, false);
+            } else {
+                showStatus("ERROR", `Check-in failed (${res.status})`, null, false);
+            }
+        } catch (err) {
+            showStatus("NETWORK ERROR", err.message, null, false);
+        }
+    }
+
+    function showStatus(title, message, seat, isSuccess) {
+        statusCard.style.display = "block";
+        statusCard.className = "status-card " + (isSuccess ? "admit" : "rejected");
+        statusTitle.textContent = title;
+        statusMessage.textContent = message;
+        if (seat) {
+            seatInfo.style.display = "inline-block";
+            seatInfo.textContent = seat;
+        } else {
+            seatInfo.style.display = "none";
+        }
+    }
+
+    const html5QrcodeScanner = new Html5QrcodeScanner(
+        "reader",
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        /* verbose= */ false
+    );
+    html5QrcodeScanner.render(onScanSuccess);
+</script>
+</body>
+</html>
