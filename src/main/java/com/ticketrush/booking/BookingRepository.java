@@ -5,5 +5,5 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface BookingRepository extends JpaRepository<Booking, Long>, BookingRepositoryCustom {
-    Optional<Booking> findByIdempotencyKey(UUID idempotencyKey);
+    Optional<Booking> findByUserIdAndIdempotencyKey(Long userId, UUID idempotencyKey);
 }

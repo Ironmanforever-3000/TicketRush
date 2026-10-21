@@ -64,7 +64,7 @@ public class BookingServiceImpl implements BookingService {
                 }
 
                 // 1. Check idempotency reuse directly (optimization)
-                Optional<Booking> existing = bookingRepository.findByIdempotencyKey(idempotencyKey);
+                Optional<Booking> existing = bookingRepository.findByUserIdAndIdempotencyKey(userId, idempotencyKey);
                 if (existing.isPresent()) {
                     Booking booking = existing.get();
                     validateIdempotencyReuse(booking, userId, request.showId(), seatIds);
@@ -91,7 +91,7 @@ public class BookingServiceImpl implements BookingService {
                 );
 
                 if (inserted.isEmpty()) {
-                    Booking duplicate = bookingRepository.findByIdempotencyKey(idempotencyKey)
+                    Booking duplicate = bookingRepository.findByUserIdAndIdempotencyKey(userId, idempotencyKey)
                             .orElseThrow(() -> new IllegalStateException("Booking should exist if insertIfAbsent returned empty"));
                     validateIdempotencyReuse(duplicate, userId, request.showId(), seatIds);
                     return new BookingCreationResult(toResponse(duplicate), false);

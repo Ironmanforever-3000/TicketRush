@@ -1,5 +1,7 @@
 package com.ticketrush.security;
 
+import org.springframework.beans.factory.annotation.Value;
+
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
@@ -14,17 +16,23 @@ import java.time.temporal.ChronoUnit;
 public class JwtService {
 
     private final JwtEncoder jwtEncoder;
+    private final String issuer;
+    private final long expirationSeconds;
 
-    public JwtService(JwtEncoder jwtEncoder) {
+    public JwtService(JwtEncoder jwtEncoder,
+                      @Value("${app.jwt.issuer}") String issuer,
+                      @Value("${app.jwt.access-token-expiration}") long expirationSeconds) {
         this.jwtEncoder = jwtEncoder;
+        this.issuer = issuer;
+        this.expirationSeconds = expirationSeconds;
     }
 
     public String generateToken(String email, String role, Long userId) {
         Instant now = Instant.now();
         JwtClaimsSet claims = JwtClaimsSet.builder()
-                .issuer("ticketrush")
+                .issuer(issuer)
                 .issuedAt(now)
-                .expiresAt(now.plus(15, ChronoUnit.MINUTES))
+                .expiresAt(now.plusSeconds(expirationSeconds))
                 .subject(email)
                 .claim("role", role)
                 .claim("userId", userId)

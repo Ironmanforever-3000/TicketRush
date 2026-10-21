@@ -37,5 +37,8 @@ management:
     health:
       show-details: always
 
-jwt:
-  secret: "your-256-bit-secret-your-256-bit-secret"
+app:
+  jwt:
+    issuer: ticketrush-api
+    secret-base64: "eW91ci0yNTYtYml0LXNlY3JldC15b3VyLTI1Ni1iaXQtc2VjcmV0" # base64 of "your-256-bit-secret-your-256-bit-secret"
+    access-token-expiration: 900

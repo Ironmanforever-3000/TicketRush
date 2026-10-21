@@ -16,5 +16,8 @@ spring:
   flyway:
     enabled: false
 
-jwt:
-  secret: test-only-secret-test-only-secret-test-only-secret
+app:
+  jwt:
+    issuer: ticketrush-api
+    secret-base64: dGVzdC1vbmx5LXNlY3JldC10ZXN0LW9ubHktc2VjcmV0LXRlc3Qtb25seS1zZWNyZXQ=
+    access-token-expiration: 900

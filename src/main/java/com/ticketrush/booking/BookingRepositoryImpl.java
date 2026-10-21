@@ -25,7 +25,8 @@ public class BookingRepositoryImpl implements BookingRepositoryCustom {
             UUID idempotencyKey) {
 
         List<?> existing = entityManager
-            .createNativeQuery("SELECT id FROM bookings WHERE idempotency_key = :idempotencyKey")
+            .createNativeQuery("SELECT id FROM bookings WHERE user_id = :userId AND idempotency_key = :idempotencyKey")
+            .setParameter("userId", userId)
             .setParameter("idempotencyKey", idempotencyKey)
             .getResultList();
 
@@ -65,7 +66,8 @@ public class BookingRepositoryImpl implements BookingRepositoryCustom {
             entityManager.flush();
         } catch (RuntimeException duplicate) {
             List<?> existingAfterInsert = entityManager
-                .createNativeQuery("SELECT id FROM bookings WHERE idempotency_key = :idempotencyKey")
+                .createNativeQuery("SELECT id FROM bookings WHERE user_id = :userId AND idempotency_key = :idempotencyKey")
+                .setParameter("userId", userId)
                 .setParameter("idempotencyKey", idempotencyKey)
                 .getResultList();
 
@@ -77,7 +79,8 @@ public class BookingRepositoryImpl implements BookingRepositoryCustom {
         }
 
         List<?> inserted = entityManager
-            .createNativeQuery("SELECT id FROM bookings WHERE idempotency_key = :idempotencyKey")
+            .createNativeQuery("SELECT id FROM bookings WHERE user_id = :userId AND idempotency_key = :idempotencyKey")
+            .setParameter("userId", userId)
             .setParameter("idempotencyKey", idempotencyKey)
             .getResultList();
 

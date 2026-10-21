@@ -61,6 +61,9 @@ public class HoldServiceImpl implements HoldService {
 
         OffsetDateTime expiresAt = OffsetDateTime.now().plusMinutes(5);
 
+        // Lock seats in deterministic order to prevent deadlocks
+        seatRepository.lockSeatsForUpdate(seatIds);
+
         int updated = seatRepository.holdAvailableSeats(
                 seatIds,
                 showId,

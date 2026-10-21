@@ -15,8 +15,8 @@ import java.util.UUID;
     name = "bookings",
     uniqueConstraints = {
         @UniqueConstraint(
-            name = "uk_bookings_idempotency_key",
-            columnNames = "idempotency_key"
+            name = "uk_bookings_user_id_idempotency_key",
+            columnNames = {"user_id", "idempotency_key"}
         )
     }
 )
@@ -45,7 +45,7 @@ public class Booking {
     @Column(nullable = false, length = 30)
     private BookingStatus status;
 
-    @Column(name = "idempotency_key", nullable = false, unique = true)
+    @Column(name = "idempotency_key", nullable = false)
     private UUID idempotencyKey;
 
     @Column(name = "created_at", nullable = false)

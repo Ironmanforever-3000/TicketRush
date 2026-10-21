@@ -113,3 +113,12 @@ Because we publish before marking the row as published, a crash
 during the window between those two operations results in duplicate
 delivery. Therefore, the system guarantees AT-LEAST-ONCE delivery,
 and all downstream consumers must be idempotent.
+
+## 008 - Where bugs usually hide in this design (Caveats)
+
+- **The Payment Gap:** Between "payment succeeded" and "Tx2 confirms the booking" there's a window where a crash leaves a charged customer with a PENDING booking. A reconciliation job is necessary to sweep old PENDING bookings and ask the payment service what happened.
+- **Payment Timeouts:** A payment timeout is not a failure. Treat it as unknown, and don't release the seats until you know.
+- **Expiry Sweeper vs Confirm:** The 10-second expiry sweeper can release a seat while its payment is in flight. Confirm must check `held_expires_at > now()` and the affected-row count, and if the seat was lost, mark the booking failed and refund.
+- **Idempotency Scope:** The unique constraint is `(user_id, idempotency_key)`, not the key alone. One user's key cannot return another user's booking.
+- **Idempotency Flow:** Only the request that wins the insert may call payment. A duplicate that arrives while the booking is PENDING should get the current state back. The same key with a different body should be rejected.
+- **Database Backstop:** A unique constraint on `booking_seats (seat_id)` ensures a seat can appear in only one confirmed booking, plus a `CHECK` that `HELD` implies `held_by` and `held_expires_at` are set. This mathematically proves no oversell instead of just asserting it in application code.
