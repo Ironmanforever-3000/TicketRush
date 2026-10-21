@@ -1,10 +1,6 @@
 package com.ticketrush;
 
-import com.ticketrush.event.Event;
-import com.ticketrush.event.EventStatus;
 import com.ticketrush.show.Show;
-import com.ticketrush.show.ShowStatus;
-import com.ticketrush.venue.Venue;
 import com.ticketrush.venue.dto.VenueLayout;
 import com.ticketrush.venue.dto.VenueRow;
 import com.ticketrush.seat.SeatGenerator;

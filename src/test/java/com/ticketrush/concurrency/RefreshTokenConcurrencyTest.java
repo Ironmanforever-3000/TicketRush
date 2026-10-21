@@ -22,9 +22,6 @@ public class RefreshTokenConcurrencyTest {
     private RefreshTokenService refreshTokenService;
 
     @Autowired
-    private RefreshTokenGenerator tokenGenerator;
-
-    @Autowired
     private UserRepository userRepository;
 
     @Test

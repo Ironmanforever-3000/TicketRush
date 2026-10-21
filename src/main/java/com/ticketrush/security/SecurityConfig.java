@@ -21,7 +21,7 @@ public class SecurityConfig {
                                                    JwtAuthenticationConverter jwtConverter,
                                                    RestSecurityErrorHandler errors) throws Exception {
         http
-            .csrf(AbstractHttpConfigurer::disable)
+            .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(e -> e.authenticationEntryPoint(errors).accessDeniedHandler(errors))
             .authorizeHttpRequests(auth -> auth
