@@ -15,6 +15,13 @@ spring:
       ddl-auto: create-drop
   flyway:
     enabled: false
+  data:
+    redis:
+      repositories:
+        enabled: false
+
+server:
+  shutdown: graceful
 
 app:
   jwt:
@@ -26,3 +33,22 @@ app:
   checkin:
     opens-before-start: PT3H
     closes-after-start: PT12H
+  outbox:
+    publisher-enabled: true
+    poll-delay-ms: 500
+    batch-size: 100
+  events:
+    stream: ticketrush:events
+    dead-letter-stream: ticketrush:dead-letter
+    max-length: 100000
+  worker:
+    enabled: false
+    autostart: true
+    concurrency: 2
+    max-deliveries: 3
+    sweep-delay-ms: 5000
+    max-attempts: 5
+    base-delay-ms: 250
+    max-delay-ms: 10000
+    pending-idle-seconds: 30
+    idempotency-ttl-days: 14

@@ -1,6 +1,8 @@
 spring:
   application:
     name: ticketrush
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
 
   datasource:
     url: jdbc:postgresql://localhost:5433/ticketrush?options=-c%20TimeZone%3DUTC
@@ -24,8 +26,16 @@ spring:
   flyway:
     enabled: true
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      repositories:
+        enabled: false
+
 server:
   port: 8080
+  shutdown: graceful
 
 management:
   endpoints:
@@ -47,3 +57,22 @@ app:
   checkin:
     opens-before-start: PT3H
     closes-after-start: PT12H
+  outbox:
+    publisher-enabled: true
+    poll-delay-ms: 500
+    batch-size: 100
+  events:
+    stream: ticketrush:events
+    dead-letter-stream: ticketrush:dead-letter
+    max-length: 100000
+  worker:
+    enabled: false              # true only in the worker process
+    autostart: true             # tests switch this off
+    concurrency: 2
+    max-deliveries: 3           # crash redeliveries before dead-letter
+    sweep-delay-ms: 5000
+    max-attempts: 5
+    base-delay-ms: 250
+    max-delay-ms: 10000
+    pending-idle-seconds: 30
+    idempotency-ttl-days: 14
