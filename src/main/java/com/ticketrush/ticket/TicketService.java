@@ -8,6 +8,7 @@ import com.ticketrush.show.ShowRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +28,7 @@ public class TicketService {
     private final BookingRepository bookings;
     private final TicketCodeService codes;
     private final QrCodeGenerator qr;
+    private final JdbcTemplate jdbc;
     private final Duration opensBeforeStart;
     private final Duration closesAfterStart;
 
@@ -36,6 +38,7 @@ public class TicketService {
                          BookingRepository bookings,
                          TicketCodeService codes,
                          QrCodeGenerator qr,
+                         JdbcTemplate jdbc,
                          @Value("${app.checkin.opens-before-start:PT3H}") Duration opensBeforeStart,
                          @Value("${app.checkin.closes-after-start:PT12H}") Duration closesAfterStart) {
         this.tickets = tickets;
@@ -44,6 +47,7 @@ public class TicketService {
         this.bookings = bookings;
         this.codes = codes;
         this.qr = qr;
+        this.jdbc = jdbc;
         this.opensBeforeStart = opensBeforeStart;
         this.closesAfterStart = closesAfterStart;
     }
@@ -101,6 +105,15 @@ public class TicketService {
     @Transactional(readOnly = true)
     public byte[] qrForOwner(UUID ticketId, Long userId) {
         Ticket t = tickets.findByIdAndOwner(ticketId, userId).orElseThrow(() -> new ResourceNotFoundException("Ticket not found"));
+        try {
+            List<byte[]> results = jdbc.query("SELECT png FROM ticket_qr WHERE ticket_id = ?",
+                    (rs, rowNum) -> rs.getBytes("png"), ticketId);
+            if (!results.isEmpty() && results.get(0) != null) {
+                return results.get(0);
+            }
+        } catch (Exception ex) {
+            log.warn("Failed to query ticket_qr for ticket {}: {}", ticketId, ex.toString());
+        }
         return qr.png(codes.encode(t.getShowId(), t.getId()), 320);
     }
 

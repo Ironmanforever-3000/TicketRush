@@ -1,25 +1,12 @@
 package com.ticketrush.ticket;
 
-import tools.jackson.core.type.TypeReference;
 import com.ticketrush.AbstractIntegrationTest;
 import com.ticketrush.auth.Role;
 import com.ticketrush.booking.BookingRequest;
-import com.ticketrush.event.Event;
-import com.ticketrush.event.EventStatus;
-import com.ticketrush.hold.Hold;
-import com.ticketrush.hold.HoldStatus;
-import com.ticketrush.seat.Seat;
-import com.ticketrush.seat.SeatStatus;
-import com.ticketrush.seat.SeatTier;
-import com.ticketrush.show.Show;
-import com.ticketrush.show.ShowStatus;
-import com.ticketrush.venue.Venue;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
-
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;

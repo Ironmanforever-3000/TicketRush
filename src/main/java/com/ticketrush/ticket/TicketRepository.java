@@ -30,6 +30,10 @@ public interface TicketRepository extends JpaRepository<Ticket, UUID> {
            "where t.bookingId = :bookingId and t.status = com.ticketrush.ticket.TicketStatus.VALID")
     int cancelValidByBooking(@Param("bookingId") Long bookingId);
 
+    @Modifying(clearAutomatically = true)
+    @Query("update Ticket t set t.qrPng = :png where t.id = :id")
+    int saveQrPng(@Param("id") UUID id, @Param("png") byte[] png);
+
     List<Ticket> findByBookingId(Long bookingId);
 
     @Query("""

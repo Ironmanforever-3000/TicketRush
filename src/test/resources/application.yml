@@ -37,6 +37,7 @@ app:
     publisher-enabled: true
     poll-delay-ms: 500
     batch-size: 100
+    lease-seconds: 30
   events:
     stream: ticketrush:events
     dead-letter-stream: ticketrush:dead-letter
@@ -45,9 +46,9 @@ app:
     enabled: false
     autostart: true
     concurrency: 2
-    max-deliveries: 3
+    max-deliveries: 5
     sweep-delay-ms: 5000
-    max-attempts: 5
+    max-attempts: 3
     base-delay-ms: 250
     max-delay-ms: 10000
     pending-idle-seconds: 30

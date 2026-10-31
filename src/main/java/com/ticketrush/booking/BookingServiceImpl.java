@@ -22,6 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
 import java.util.*;
+import tools.jackson.databind.ObjectMapper;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -38,6 +39,7 @@ public class BookingServiceImpl implements BookingService {
     private final ShowRepository showRepository;
     private final TicketService ticketService;
     private final TicketRepository ticketRepository;
+    private final ObjectMapper objectMapper;
 
     public BookingServiceImpl(
             BookingRepository bookingRepository,
@@ -47,7 +49,8 @@ public class BookingServiceImpl implements BookingService {
             HoldRepository holdRepository,
             ShowRepository showRepository,
             TicketService ticketService,
-            TicketRepository ticketRepository) {
+            TicketRepository ticketRepository,
+            ObjectMapper objectMapper) {
         this.bookingRepository = bookingRepository;
         this.bookingSeatRepository = bookingSeatRepository;
         this.outboxRepository = outboxRepository;
@@ -56,6 +59,7 @@ public class BookingServiceImpl implements BookingService {
         this.showRepository = showRepository;
         this.ticketService = ticketService;
         this.ticketRepository = ticketRepository;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -137,8 +141,17 @@ public class BookingServiceImpl implements BookingService {
                 bookingRepository.save(booking);
 
                 // 8. Write outbox event
-                String payloadJson = String.format("{\"booking_id\":%d, \"show_id\":%d, \"seat_ids\":%s, \"user_id\":%d}",
-                        booking.getId(), show.getId(), seatIds.toString(), userId);
+                String payloadJson;
+                try {
+                    payloadJson = objectMapper.writeValueAsString(Map.of(
+                            "booking_id", booking.getId(),
+                            "show_id", show.getId(),
+                            "seat_ids", seatIds,
+                            "user_id", userId,
+                            "total_cents", booking.getTotalCents()));
+                } catch (Exception ex) {
+                    throw new RuntimeException("Failed to serialize outbox event payload", ex);
+                }
 
                 OutboxEvent event = new OutboxEvent();
                 event.setAggregateType("BOOKING");

@@ -2,8 +2,8 @@ package com.ticketrush.worker;
 
 import java.util.Set;
 
-public interface EventHandler {
+public interface StreamEventHandler {
     String group();
     Set<String> eventTypes();
-    void handle(EventMessage event) throws Exception;
+    void handle(StreamEvent event) throws Exception;
 }

@@ -1,6 +1,8 @@
 package com.ticketrush.ticket;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -33,6 +35,10 @@ public class Ticket {
 
     @Column(name = "checked_in_by")
     private Long checkedInBy;
+
+    @JdbcTypeCode(SqlTypes.VARBINARY)
+    @Column(name = "qr_png")
+    private byte[] qrPng;
 
     public Ticket() {
     }
@@ -99,5 +105,13 @@ public class Ticket {
 
     public void setCheckedInBy(Long checkedInBy) {
         this.checkedInBy = checkedInBy;
+    }
+
+    public byte[] getQrPng() {
+        return qrPng;
+    }
+
+    public void setQrPng(byte[] qrPng) {
+        this.qrPng = qrPng;
     }
 }

@@ -10,6 +10,7 @@ public class TestcontainersConfig {
 
     @Bean
     @ServiceConnection(name = "redis")
+    @SuppressWarnings("resource")
     public GenericContainer<?> redis() {
         return new GenericContainer<>("redis:7.4-alpine").withExposedPorts(6379);
     }

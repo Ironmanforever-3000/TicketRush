@@ -34,14 +34,14 @@ class InboxServiceTest extends AbstractIntegrationTest {
     @Test
     void runOnceSkipsDuplicatesAndIncrementsCounter() throws Exception {
         AtomicInteger counter = new AtomicInteger();
-        long before = inboxService.skippedDuplicates.get();
+        long before = InboxService.skippedDuplicates.get();
 
         inboxService.runOnce("group1", "evt-2", counter::incrementAndGet);
         assertThat(counter.get()).isEqualTo(1);
 
         inboxService.runOnce("group1", "evt-2", counter::incrementAndGet);
         assertThat(counter.get()).isEqualTo(1);
-        assertThat(inboxService.skippedDuplicates.get()).isEqualTo(before + 1);
+        assertThat(InboxService.skippedDuplicates.get()).isEqualTo(before + 1);
     }
 
     @Test

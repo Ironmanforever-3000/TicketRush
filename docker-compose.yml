@@ -37,8 +37,24 @@ services:
       retries: 10
     restart: unless-stopped
 
+  worker:
+    build: .
+    container_name: ticketrush-worker
+    command: ["java", "-jar", "app.jar", "--spring.profiles.active=worker"]
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ticketrush
+      SPRING_DATASOURCE_USERNAME: ticketrush
+      SPRING_DATASOURCE_PASSWORD: ticketrush_password
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+    depends_on:
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    stop_grace_period: 40s
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:
-
-

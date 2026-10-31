@@ -1,0 +1,10 @@
+spring:
+  main:
+    web-application-type: none
+  lifecycle:
+    timeout-per-shutdown-phase: 40s
+
+app:
+  worker:
+    concurrency: 1
+    shutdown-drain-timeout-ms: 35000

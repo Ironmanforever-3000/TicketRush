@@ -33,6 +33,12 @@ public class OutboxEvent {
     @Column(name = "published_at")
     private OffsetDateTime publishedAt;
 
+    @Column(name = "claimed_at")
+    private OffsetDateTime claimedAt;
+
+    @Column(name = "claimed_by")
+    private String claimedBy;
+
     public OutboxEvent() {
     }
 
@@ -90,5 +96,21 @@ public class OutboxEvent {
 
     public void setPublishedAt(OffsetDateTime publishedAt) {
         this.publishedAt = publishedAt;
+    }
+
+    public OffsetDateTime getClaimedAt() {
+        return claimedAt;
+    }
+
+    public void setClaimedAt(OffsetDateTime claimedAt) {
+        this.claimedAt = claimedAt;
+    }
+
+    public String getClaimedBy() {
+        return claimedBy;
+    }
+
+    public void setClaimedBy(String claimedBy) {
+        this.claimedBy = claimedBy;
     }
 }

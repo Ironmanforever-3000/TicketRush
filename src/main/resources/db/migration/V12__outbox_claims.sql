@@ -1,0 +1,4 @@
+ALTER TABLE outbox ADD COLUMN IF NOT EXISTS published_at TIMESTAMPTZ;
+ALTER TABLE outbox ADD COLUMN IF NOT EXISTS claimed_at   TIMESTAMPTZ;
+ALTER TABLE outbox ADD COLUMN IF NOT EXISTS claimed_by   VARCHAR(100);
+CREATE INDEX IF NOT EXISTS idx_outbox_unpublished ON outbox (id) WHERE published_at IS NULL;
