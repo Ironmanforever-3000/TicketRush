@@ -1,5 +1,6 @@
 package com.ticketrush.worker;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -41,22 +42,25 @@ class StreamConsumerRunnerTest extends AbstractWorkerIntegrationTest {
     void messageIsAckedAfterSuccessfulHandling() {
         handled.set(false);
         init.ensureGroup("ticket-generation");
-        publishRaw("123456", "TEST_EVENT", "{}");
         runner.start();
+        publishRaw("123456", "TEST_EVENT", "{}");
         await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
             assertThat(handled.get()).isTrue();
             assertThat(redis.opsForStream().pending(stream, "ticket-generation").getTotalPendingMessages()).isZero();
         });
-        runner.stop();
     }
 
     @Test
     void malformedEventIdIsAckedWithoutLeavingItPending() {
         init.ensureGroup("ticket-generation");
-        publishRaw("malformed-not-a-number", "TEST_EVENT", "{}");
         runner.start();
+        publishRaw("malformed-not-a-number", "TEST_EVENT", "{}");
         await().atMost(Duration.ofSeconds(10)).untilAsserted(() ->
                 assertThat(redis.opsForStream().pending(stream, "ticket-generation").getTotalPendingMessages()).isZero());
+    }
+
+    @AfterAll
+    static void stopRunner(@Autowired StreamConsumerRunner runner) {
         runner.stop();
     }
 }
