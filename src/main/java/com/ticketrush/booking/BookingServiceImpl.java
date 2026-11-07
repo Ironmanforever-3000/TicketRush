@@ -9,6 +9,7 @@ import com.ticketrush.outbox.OutboxEvent;
 import com.ticketrush.outbox.OutboxRepository;
 import com.ticketrush.seat.Seat;
 import com.ticketrush.seat.SeatRepository;
+import com.ticketrush.seat.SeatStateOutboxWriter;
 import com.ticketrush.seat.SeatUnavailableException;
 import com.ticketrush.show.Show;
 import com.ticketrush.show.ShowRepository;
@@ -40,6 +41,7 @@ public class BookingServiceImpl implements BookingService {
     private final TicketService ticketService;
     private final TicketRepository ticketRepository;
     private final ObjectMapper objectMapper;
+    private final SeatStateOutboxWriter seatStateOutboxWriter;
 
     public BookingServiceImpl(
             BookingRepository bookingRepository,
@@ -50,7 +52,8 @@ public class BookingServiceImpl implements BookingService {
             ShowRepository showRepository,
             TicketService ticketService,
             TicketRepository ticketRepository,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            SeatStateOutboxWriter seatStateOutboxWriter) {
         this.bookingRepository = bookingRepository;
         this.bookingSeatRepository = bookingSeatRepository;
         this.outboxRepository = outboxRepository;
@@ -60,6 +63,7 @@ public class BookingServiceImpl implements BookingService {
         this.ticketService = ticketService;
         this.ticketRepository = ticketRepository;
         this.objectMapper = objectMapper;
+        this.seatStateOutboxWriter = seatStateOutboxWriter;
     }
 
     @Override
@@ -73,10 +77,6 @@ public class BookingServiceImpl implements BookingService {
                         .distinct()
                         .sorted()
                         .toList();
-
-                if (seatIds.isEmpty()) {
-                    throw new IllegalArgumentException("At least one seat is required");
-                }
 
                 // 1. Check idempotency reuse directly (optimization)
                 Optional<Booking> existing = bookingRepository.findByUserIdAndIdempotencyKey(userId, idempotencyKey);
@@ -140,6 +140,9 @@ public class BookingServiceImpl implements BookingService {
                 booking.getBookingSeats().addAll(bookingSeats); // For response generation
                 bookingRepository.save(booking);
 
+                hold.setStatus(HoldStatus.CONFIRMED);
+                holdRepository.save(hold);
+
                 // 8. Write outbox event
                 String payloadJson;
                 try {
@@ -161,6 +164,7 @@ public class BookingServiceImpl implements BookingService {
                 event.setCreatedAt(OffsetDateTime.now());
 
                 outboxRepository.save(event);
+                seatStateOutboxWriter.write(request.showId(), seatIds, "SOLD");
 
                 return new BookingCreationResult(toResponse(booking), true);
             } finally {
@@ -178,21 +182,22 @@ public class BookingServiceImpl implements BookingService {
                 return hold;
             }
         }
-        throw new SeatUnavailableException("Valid hold not found for the requested seats");
+        
+        throw new SeatUnavailableException("No active hold found for the selected seats");
     }
 
     private void validateIdempotencyReuse(Booking booking, Long userId, Long showId, List<Long> seatIds) {
-        if (!booking.getUser().getId().equals(userId) || !booking.getShow().getId().equals(showId)) {
-            throw new IdempotencyKeyReusedException("The idempotency key was already used for a different booking.");
-        }
-        // Extract seats and compare
-        List<Long> existingSeats = booking.getBookingSeats().stream()
+        boolean showMatches = booking.getShow().getId().equals(showId);
+        boolean userMatches = booking.getUser().getId().equals(userId);
+        
+        List<Long> bookedSeatIds = booking.getBookingSeats().stream()
                 .map(bs -> bs.getSeat().getId())
                 .sorted()
                 .toList();
-        
-        if (!existingSeats.equals(seatIds)) {
-            throw new IdempotencyKeyReusedException("The idempotency key was already used for a different booking.");
+        boolean seatsMatch = bookedSeatIds.equals(seatIds);
+
+        if (!showMatches || !userMatches || !seatsMatch) {
+            throw new IdempotencyKeyReusedException("Idempotency key reused with different parameters");
         }
     }
 

@@ -41,13 +41,14 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
-
+        include: health, metrics
   endpoint:
     health:
-      show-details: always
+      show-details: when-authorized
 
 app:
+  websocket:
+    allowed-origins: http://localhost:5173
   jwt:
     issuer: ticketrush-api
     secret-base64: "eW91ci0yNTYtYml0LXNlY3JldC15b3VyLTI1Ni1iaXQtc2VjcmV0" # base64 of "your-256-bit-secret-your-256-bit-secret"

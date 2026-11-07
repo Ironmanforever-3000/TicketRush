@@ -21,7 +21,9 @@ import com.ticketrush.event.EventRepository;
 import com.ticketrush.event.EventStatus;
 import com.ticketrush.hold.Hold;
 import com.ticketrush.hold.HoldRepository;
+import com.ticketrush.hold.HoldService;
 import com.ticketrush.hold.HoldStatus;
+import com.ticketrush.hold.dto.HoldRequest;
 import com.ticketrush.outbox.OutboxEvent;
 import com.ticketrush.outbox.OutboxRepository;
 import com.ticketrush.seat.Seat;
@@ -77,6 +79,7 @@ public abstract class AbstractWorkerIntegrationTest {
     @Autowired protected SeatTierRepository seatTierRepository;
     @Autowired protected SeatRepository seatRepository;
     @Autowired protected HoldRepository holdRepository;
+    @Autowired protected HoldService holdService;
     @Autowired protected BookingService bookingService;
     @Autowired protected OutboxRepository outboxRepository;
     @Autowired protected PasswordEncoder passwordEncoder;
@@ -89,6 +92,8 @@ public abstract class AbstractWorkerIntegrationTest {
         public Long bookingId() { return bookingId; }
     }
 
+    public record HoldFixture(Long showId, List<Long> seatIds, Long userId) {}
+
     protected User createUser(Role role) {
         String email = "test-" + UUID.randomUUID() + "@example.com";
         User user = new User();
@@ -100,6 +105,59 @@ public abstract class AbstractWorkerIntegrationTest {
         user.setUpdatedAt(OffsetDateTime.now());
         user.setActive(true);
         return userRepository.save(user);
+    }
+
+    protected HoldFixture holdSeats(int n) {
+        User organizer = createUser(Role.ORGANIZER);
+        User customer = createUser(Role.CUSTOMER);
+
+        Venue venue = new Venue();
+        venue.setName("Venue " + UUID.randomUUID());
+        venue.setCity("Metropolis");
+        venue.setLayoutJson("{}");
+        venue.setCreatedAt(OffsetDateTime.now());
+        venue = venueRepository.save(venue);
+
+        Event event = new Event();
+        event.setTitle("Concert " + UUID.randomUUID());
+        event.setDescription("Description");
+        event.setCategory("Music");
+        event.setStatus(EventStatus.PUBLISHED);
+        event.setOrganizer(organizer);
+        event.setCreatedAt(OffsetDateTime.now());
+        event = eventRepository.save(event);
+
+        Show show = new Show();
+        show.setEvent(event);
+        show.setVenue(venue);
+        show.setStartsAt(OffsetDateTime.now().plusHours(1));
+        show.setSaleOpensAt(OffsetDateTime.now().minusHours(1));
+        show.setSaleClosesAt(OffsetDateTime.now().plusHours(3));
+        show.setStatus(ShowStatus.SCHEDULED);
+        show = showRepository.save(show);
+
+        SeatTier tier = new SeatTier();
+        tier.setShow(show);
+        tier.setName("VIP");
+        tier.setPriceCents(5000L);
+        tier.setCurrency("USD");
+        tier = seatTierRepository.save(tier);
+
+        List<Seat> seats = new ArrayList<>();
+        for (int i = 1; i <= n; i++) {
+            Seat seat = new Seat();
+            seat.setShow(show);
+            seat.setTier(tier);
+            seat.setRowLabel("A");
+            seat.setSeatNumber(i);
+            seat.setStatus(SeatStatus.AVAILABLE);
+            seats.add(seat);
+        }
+        seats = seatRepository.saveAll(seats);
+        List<Long> seatIds = seats.stream().map(Seat::getId).toList();
+
+        holdService.createHold(show.getId(), new HoldRequest(customer.getId(), seatIds));
+        return new HoldFixture(show.getId(), seatIds, customer.getId());
     }
 
     protected WorkerFixture bookedShow(int n) {

@@ -25,9 +25,11 @@ public class SecurityConfig {
             .exceptionHandling(e -> e.authenticationEntryPoint(errors).accessDeniedHandler(errors))
             .authorizeHttpRequests(auth -> auth
                 // public
-                .requestMatchers("/api/v1/auth/**", "/health", "/actuator/**", "/gate.html").permitAll()
+                .requestMatchers("/api/v1/auth/**", "/health", "/actuator/health", "/gate.html").permitAll()
+                .requestMatchers("/ws/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/events/**", "/api/v1/venues/**", "/api/v1/shows/**").permitAll()
                 // admin-only
+                .requestMatchers("/actuator/**").hasRole("ADMIN")
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                 // buying: must come BEFORE the generic POST rules
                 .requestMatchers(HttpMethod.POST, "/api/v1/shows/*/holds").hasAnyRole("CUSTOMER", "ORGANIZER", "ADMIN")

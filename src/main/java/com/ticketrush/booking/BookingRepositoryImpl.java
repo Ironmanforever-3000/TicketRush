@@ -31,8 +31,7 @@ public class BookingRepositoryImpl implements BookingRepositoryCustom {
             .getResultList();
 
         if (!existing.isEmpty()) {
-            Number id = (Number) existing.get(0);
-            return Optional.of(id.longValue());
+            return Optional.empty();
         }
 
         try {
@@ -72,8 +71,7 @@ public class BookingRepositoryImpl implements BookingRepositoryCustom {
                 .getResultList();
 
             if (!existingAfterInsert.isEmpty()) {
-                Number id = (Number) existingAfterInsert.get(0);
-                return Optional.of(id.longValue());
+                return Optional.empty();
             }
             throw duplicate;
         }

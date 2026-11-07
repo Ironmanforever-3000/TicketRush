@@ -23,7 +23,21 @@ spring:
 server:
   shutdown: graceful
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
 app:
+  redis:
+    listener:
+      enabled: false
+  websocket:
+    allowed-origins: http://localhost:5173
   jwt:
     issuer: ticketrush-api
     secret-base64: dGVzdC1vbmx5LXNlY3JldC10ZXN0LW9ubHktc2VjcmV0LXRlc3Qtb25seS1zZWNyZXQ=

@@ -20,7 +20,8 @@ import static org.awaitility.Awaitility.await;
 @TestPropertySource(properties = {
         "spring.flyway.enabled=true",
         "spring.jpa.hibernate.ddl-auto=none",
-        "spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect"
+        "spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect",
+        "app.outbox.poll-delay-ms=60000"
 })
 class OutboxPublisherIntegrationTest extends AbstractIntegrationTest {
 
@@ -65,11 +66,11 @@ class OutboxPublisherIntegrationTest extends AbstractIntegrationTest {
             });
 
             Boolean published = jdbc.queryForObject(
-                    "SELECT published_at IS NOT NULL FROM outbox WHERE aggregate_id = ?", Boolean.class, f.bookingId());
+                    "SELECT published_at IS NOT NULL FROM outbox WHERE aggregate_type = 'BOOKING' AND aggregate_id = ?", Boolean.class, f.bookingId());
             assertThat(published).isTrue();
 
             String claimedBy = jdbc.queryForObject(
-                    "SELECT claimed_by FROM outbox WHERE aggregate_id = ?", String.class, f.bookingId());
+                    "SELECT claimed_by FROM outbox WHERE aggregate_type = 'BOOKING' AND aggregate_id = ?", String.class, f.bookingId());
             assertThat(claimedBy).isNotNull();
         });
     }
@@ -86,11 +87,11 @@ class OutboxPublisherIntegrationTest extends AbstractIntegrationTest {
 
         assertThat(failing.publishBatch()).isZero();
         Boolean stillUnpublished = jdbc.queryForObject(
-                "SELECT published_at IS NULL FROM outbox WHERE aggregate_id = ?", Boolean.class, f.bookingId());
+                "SELECT published_at IS NULL FROM outbox WHERE aggregate_type = 'BOOKING' AND aggregate_id = ?", Boolean.class, f.bookingId());
         assertThat(stillUnpublished).isTrue();
 
         // Simulate lease expiration so another publisher pass can re-claim it
-        jdbc.update("UPDATE outbox SET claimed_at = now() - interval '35 seconds' WHERE aggregate_id = ?", f.bookingId());
+        jdbc.update("UPDATE outbox SET claimed_at = now() - interval '35 seconds' WHERE aggregate_type = 'BOOKING' AND aggregate_id = ?", f.bookingId());
         assertThat(batchService.publishBatch()).isGreaterThanOrEqualTo(1);
     }
 
@@ -98,14 +99,16 @@ class OutboxPublisherIntegrationTest extends AbstractIntegrationTest {
     void republishingAfterResetKeepsTheSameEventId() throws Exception {
         Fixture f = bookedShow(1);
         batchService.publishBatch();
-        Long outboxId = jdbc.queryForObject("SELECT id FROM outbox WHERE aggregate_id = ?", Long.class, f.bookingId());
+        Long outboxId = jdbc.queryForObject("SELECT id FROM outbox WHERE aggregate_type = 'BOOKING' AND aggregate_id = ?", Long.class, f.bookingId());
 
         jdbc.update("UPDATE outbox SET published_at = NULL, claimed_at = NULL, claimed_by = NULL WHERE id = ?", outboxId);
         batchService.publishBatch();
 
-        long matches = redis.opsForStream().range(stream, Range.unbounded()).stream()
-                .filter(r -> String.valueOf(r.getValue().get("eventId")).equals(String.valueOf(outboxId)))
-                .count();
-        assertThat(matches).isEqualTo(2);
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
+            long matches = redis.opsForStream().range(stream, Range.unbounded()).stream()
+                    .filter(r -> String.valueOf(r.getValue().get("eventId")).equals(String.valueOf(outboxId)))
+                    .count();
+            assertThat(matches).isEqualTo(2);
+        });
     }
 }

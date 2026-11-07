@@ -1,6 +1,6 @@
 package com.ticketrush.exception;
 
-import com.ticketrush.seat.SeatUnavailableException;
+import com.ticketrush.ratelimit.QuotaMetrics;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -16,6 +16,12 @@ import java.util.UUID;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private final QuotaMetrics quotaMetrics;
+
+    public GlobalExceptionHandler(QuotaMetrics quotaMetrics) {
+        this.quotaMetrics = quotaMetrics;
+    }
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleResourceNotFound(ResourceNotFoundException ex) {
@@ -42,9 +48,17 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.CONFLICT, "CONFLICT", ex.getMessage(), null);
     }
 
-    @ExceptionHandler(SeatUnavailableException.class)
-    public ResponseEntity<ErrorResponse> handleSeatUnavailable(SeatUnavailableException ex) {
+    @ExceptionHandler(com.ticketrush.seat.SeatUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleSeatUnavailable(com.ticketrush.seat.SeatUnavailableException ex) {
         return buildResponse(HttpStatus.CONFLICT, "SEAT_UNAVAILABLE", ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(BusinessRuleException.class)
+    public ResponseEntity<ErrorResponse> handleBusinessRule(BusinessRuleException ex) {
+        if (quotaMetrics != null) {
+            quotaMetrics.recordRejection();
+        }
+        return buildResponse(HttpStatus.CONFLICT, "BUSINESS_RULE_VIOLATION", ex.getMessage(), null);
     }
 
     @ExceptionHandler(IdempotencyKeyReusedException.class)

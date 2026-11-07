@@ -8,6 +8,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.UUID;
@@ -36,7 +37,7 @@ public class BookingController {
             userId = ownershipService.extractUserIdFromJwt(jwt);
         }
         if (userId == null) {
-            userId = 7L;
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated");
         }
 
         BookingCreationResult result = bookingService.createBooking(userId, idempotencyKey, request);
@@ -52,6 +53,9 @@ public class BookingController {
         if (userId == null && jwt != null) {
             userId = ownershipService.extractUserIdFromJwt(jwt);
         }
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated");
+        }
         return bookingService.getUserBookings(userId);
     }
 
@@ -62,6 +66,9 @@ public class BookingController {
         Long userId = ownershipService.extractUserId(authentication);
         if (userId == null && jwt != null) {
             userId = ownershipService.extractUserIdFromJwt(jwt);
+        }
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated");
         }
         boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ADMIN"));
@@ -75,6 +82,9 @@ public class BookingController {
         Long userId = ownershipService.extractUserId(authentication);
         if (userId == null && jwt != null) {
             userId = ownershipService.extractUserIdFromJwt(jwt);
+        }
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated");
         }
         boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ADMIN"));

@@ -53,6 +53,18 @@ public interface SeatRepository extends JpaRepository<Seat, Long> {
         """, nativeQuery = true)
     int releaseHeldSeats(@Param("seatIds") List<Long> seatIds);
 
+    @Query(value = """
+        UPDATE seats
+           SET status = 'AVAILABLE',
+               held_by = NULL,
+               hold_expires_at = NULL,
+               version = version + 1
+         WHERE status = 'HELD'
+           AND hold_expires_at < now()
+        RETURNING id, show_id AS showId
+        """, nativeQuery = true)
+    List<ReleasedSeatRow> releaseExpiredSeatsReturning();
+
     @Modifying(clearAutomatically = true)
     @Query("""
         UPDATE Seat s
@@ -71,10 +83,24 @@ public interface SeatRepository extends JpaRepository<Seat, Long> {
     );
 
     @Query(value = """
-        SELECT id FROM seats 
-        WHERE id = ANY(:seatIds) 
-        ORDER BY id 
+        SELECT id FROM seats
+        WHERE id IN (:seatIds)
+        ORDER BY id
         FOR UPDATE
     """, nativeQuery = true)
     List<Long> lockSeatsForUpdate(@Param("seatIds") List<Long> seatIds);
+
+    @Query("""
+        SELECT COUNT(s)
+          FROM Seat s
+         WHERE s.show.id = :showId
+           AND s.heldBy = :userId
+           AND s.status = com.ticketrush.seat.SeatStatus.HELD
+           AND s.holdExpiresAt > :now
+    """)
+    long countActiveHeldSeats(
+            @Param("showId") Long showId,
+            @Param("userId") Long userId,
+            @Param("now") OffsetDateTime now
+    );
 }

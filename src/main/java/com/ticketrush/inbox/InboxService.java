@@ -45,7 +45,7 @@ public class InboxService {
     @Scheduled(cron = "0 15 3 * * *")
     public void purgeOld() {
         try {
-            int deleted = jdbc.update("DELETE FROM processed_events WHERE processed_at < now() - make_interval(days => ?)", ttlDays);
+            int deleted = jdbc.update("DELETE FROM processed_events WHERE processed_at < now() - CAST(? AS INT) * INTERVAL '1' DAY", ttlDays);
             log.info("Purged {} expired processed_events older than {} days", deleted, ttlDays);
         } catch (Exception e) {
             log.warn("Failed to purge old processed_events: {}", e.toString());

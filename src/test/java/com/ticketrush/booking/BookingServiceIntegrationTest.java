@@ -11,6 +11,7 @@ import com.ticketrush.exception.IdempotencyKeyReusedException;
 import com.ticketrush.seat.SeatUnavailableException;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -26,6 +27,9 @@ class BookingServiceIntegrationTest {
 
     @Autowired
     private BookingService bookingService;
+
+    @Autowired
+    private BookingRepository bookingRepository;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -103,6 +107,10 @@ class BookingServiceIntegrationTest {
         Integer seatCount = jdbcTemplate.queryForObject("SELECT count(*) FROM seats WHERE status = 'SOLD' AND id IN (?, ?)", Integer.class, s1, s2);
         assertThat(seatCount).isEqualTo(2);
 
+        // Verify hold is marked CONFIRMED
+        String holdStatus = jdbcTemplate.queryForObject("SELECT status FROM holds WHERE id = ?", String.class, testHoldId);
+        assertThat(holdStatus).isEqualTo("CONFIRMED");
+
         Integer outboxCount = jdbcTemplate.queryForObject("SELECT count(*) FROM outbox WHERE aggregate_type = 'BOOKING' AND aggregate_id = ?", Integer.class, result.response().bookingId());
         assertThat(outboxCount).isEqualTo(1);
     }
@@ -118,6 +126,18 @@ class BookingServiceIntegrationTest {
         assertThat(first.created()).isTrue();
         assertThat(second.created()).isFalse();
         assertThat(first.response().bookingId()).isEqualTo(second.response().bookingId());
+    }
+
+    @Test
+    void testInsertIfAbsentReturnsEmptyOnExisting() {
+        UUID idempotencyKey = UUID.randomUUID();
+        BookingRequest request = new BookingRequest(testShowId, List.of(s1));
+        BookingCreationResult first = bookingService.createBooking(testUserId, idempotencyKey, request);
+        assertThat(first.created()).isTrue();
+
+        Optional<Long> secondInsert = bookingRepository.insertIfAbsent(
+                testUserId, testShowId, testHoldId, 1000L, idempotencyKey);
+        assertThat(secondInsert).isEmpty();
     }
 
     @Test

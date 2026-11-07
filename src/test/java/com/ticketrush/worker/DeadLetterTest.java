@@ -32,6 +32,7 @@ class DeadLetterTest extends AbstractWorkerIntegrationTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void messageExceedingMaxDeliveriesReachesDeadLetterStream(@Autowired StreamEventHandler alwaysFails) {
         init.ensureGroup("ticket-generation");
         publishRaw("777", "POISON", "{}");

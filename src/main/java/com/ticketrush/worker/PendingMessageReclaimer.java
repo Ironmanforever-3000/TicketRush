@@ -25,7 +25,6 @@ public class PendingMessageReclaimer {
 
     private final StringRedisTemplate redis;
     private final List<StreamEventHandler> handlers;
-    private final DeadLetterPublisher deadLetter;
     private final StreamMessageProcessor processor;
 
     @Value("${app.events.stream:ticketrush:events}")
@@ -41,11 +40,9 @@ public class PendingMessageReclaimer {
 
     public PendingMessageReclaimer(StringRedisTemplate redis,
                                    List<StreamEventHandler> handlers,
-                                   DeadLetterPublisher deadLetter,
                                    StreamMessageProcessor processor) {
         this.redis = redis;
         this.handlers = handlers;
-        this.deadLetter = deadLetter;
         this.processor = processor;
     }
 

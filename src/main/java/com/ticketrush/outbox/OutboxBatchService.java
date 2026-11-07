@@ -1,7 +1,9 @@
 package com.ticketrush.outbox;
 
+import com.ticketrush.realtime.RedisSeatPublisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -18,13 +20,20 @@ public class OutboxBatchService {
 
     private final OutboxClaimService claims;
     private final StringRedisTemplate redis;
+    private final RedisSeatPublisher seatPublisher;
     @Value("${app.events.stream}") private String stream;
     @Value("${app.outbox.batch-size:100}") private int batchSize;
     @Value("${app.outbox.lease-seconds:30}") private int leaseSeconds;
 
     public OutboxBatchService(OutboxClaimService claims, StringRedisTemplate redis) {
+        this(claims, redis, new RedisSeatPublisher(redis));
+    }
+
+    @Autowired
+    public OutboxBatchService(OutboxClaimService claims, StringRedisTemplate redis, RedisSeatPublisher seatPublisher) {
         this.claims = claims;
         this.redis = redis;
+        this.seatPublisher = seatPublisher;
     }
 
     /** Claims a batch (one short tx), then publishes each row to Redis with NO transaction
@@ -47,12 +56,16 @@ public class OutboxBatchService {
 
     private boolean publishOne(OutboxEvent e) {
         try {
-            Map<String, String> fields = new HashMap<>();
-            fields.put("eventId", e.getId().toString());          // stable across any republish
-            fields.put("eventType", e.getEventType());
-            fields.put("payload", e.getPayload());                // already-serialized JSON from booking confirmation
-            fields.put("occurredAt", e.getCreatedAt().toString());
-            redis.opsForStream().add(StreamRecords.newRecord().in(stream).ofMap(fields));
+            if ("SEAT_STATE_CHANGED".equals(e.getEventType())) {
+                seatPublisher.publish(e.getPayload());          // ephemeral Pub/Sub — no Stream, no consumer groups
+            } else {
+                Map<String, String> fields = new HashMap<>();
+                fields.put("eventId", e.getId().toString());          // stable across any republish
+                fields.put("eventType", e.getEventType());
+                fields.put("payload", e.getPayload());                // already-serialized JSON from booking confirmation
+                fields.put("occurredAt", e.getCreatedAt().toString());
+                redis.opsForStream().add(StreamRecords.newRecord().in(stream).ofMap(fields));
+            }
             return true;
         } catch (RuntimeException ex) {
             log.warn("Redis unavailable; outbox event {} stays claimed for re-lease: {}", e.getId(), ex.toString());

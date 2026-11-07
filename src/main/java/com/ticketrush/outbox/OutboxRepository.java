@@ -20,7 +20,7 @@ public interface OutboxRepository extends JpaRepository<OutboxEvent, Long> {
          WHERE id IN (
              SELECT id FROM outbox
               WHERE published_at IS NULL
-                AND (claimed_at IS NULL OR claimed_at < now() - make_interval(secs => :leaseSeconds))
+                AND (claimed_at IS NULL OR claimed_at < now() - CAST(:leaseSeconds AS INT) * INTERVAL '1' SECOND)
               ORDER BY id
               LIMIT :batchSize
               FOR UPDATE SKIP LOCKED

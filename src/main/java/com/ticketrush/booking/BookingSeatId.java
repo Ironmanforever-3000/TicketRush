@@ -7,6 +7,7 @@ import java.util.Objects;
 
 @Embeddable
 public class BookingSeatId implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     private Long bookingId;
     private Long seatId;

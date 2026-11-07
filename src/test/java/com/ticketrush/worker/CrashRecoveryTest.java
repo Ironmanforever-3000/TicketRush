@@ -21,6 +21,7 @@ class CrashRecoveryTest extends AbstractWorkerIntegrationTest {
     @Autowired TicketRepository tickets;
 
     @Test
+    @SuppressWarnings("unchecked")
     void crashAfterCommitBeforeAckDoesNotDuplicateTickets() throws Exception {
         init.ensureGroup("ticket-generation");
         var f = bookedShow(2);

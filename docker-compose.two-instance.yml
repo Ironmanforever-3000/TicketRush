@@ -1,0 +1,55 @@
+# docker-compose.two-instance.yml — run with: docker compose -f docker-compose.yml -f docker-compose.two-instance.yml up
+services:
+  api:
+    build: .
+    container_name: ticketrush-api
+    command: ["java", "-jar", "app.jar", "--server.port=8080"]
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ticketrush
+      SPRING_DATASOURCE_USERNAME: ticketrush
+      SPRING_DATASOURCE_PASSWORD: ticketrush_password
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    restart: unless-stopped
+
+  api-b:
+    build: .
+    container_name: ticketrush-api-b
+    command: ["java", "-jar", "app.jar", "--server.port=8081"]
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ticketrush
+      SPRING_DATASOURCE_USERNAME: ticketrush
+      SPRING_DATASOURCE_PASSWORD: ticketrush_password
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    container_name: ticketrush-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
+      - api-b
+    restart: unless-stopped

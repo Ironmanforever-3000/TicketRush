@@ -1,5 +1,6 @@
 package com.ticketrush.outbox;
 
+import com.ticketrush.realtime.RedisSeatPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.RedisConnectionFailureException;
@@ -17,11 +18,12 @@ import static org.mockito.Mockito.*;
 class OutboxBatchServiceTest {
     OutboxClaimService claims = mock(OutboxClaimService.class);
     StringRedisTemplate redis = mock(StringRedisTemplate.class, RETURNS_DEEP_STUBS);
+    RedisSeatPublisher seatPublisher = mock(RedisSeatPublisher.class);
     OutboxBatchService service;
 
     @BeforeEach
     void setUp() {
-        service = new OutboxBatchService(claims, redis);
+        service = new OutboxBatchService(claims, redis, seatPublisher);
         ReflectionTestUtils.setField(service, "stream", "ticketrush:events");
         ReflectionTestUtils.setField(service, "batchSize", 100);
         ReflectionTestUtils.setField(service, "leaseSeconds", 30);
@@ -46,6 +48,23 @@ class OutboxBatchServiceTest {
         assertThat(service.publishBatch()).isEqualTo(2);
         verify(claims).markPublished(1L);
         verify(claims).markPublished(2L);
+    }
+
+    @Test
+    void seatStateChangedEventGoesToPubSubPublisherNotStream() {
+        OutboxEvent e = new OutboxEvent();
+        e.setId(10L);
+        e.setEventType("SEAT_STATE_CHANGED");
+        e.setPayload("{\"status\":\"HELD\"}");
+        e.setCreatedAt(OffsetDateTime.now());
+
+        when(claims.claim(any(), anyInt(), anyInt())).thenReturn(1);
+        when(claims.findClaimed(any())).thenReturn(List.of(e));
+
+        assertThat(service.publishBatch()).isEqualTo(1);
+        verify(seatPublisher).publish("{\"status\":\"HELD\"}");
+        verify(claims).markPublished(10L);
+        verifyNoInteractions(redis);
     }
 
     @Test

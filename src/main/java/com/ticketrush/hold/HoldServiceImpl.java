@@ -1,10 +1,13 @@
 package com.ticketrush.hold;
 
 import com.ticketrush.exception.BadRequestException;
+import com.ticketrush.exception.BusinessRuleException;
 import com.ticketrush.exception.ResourceNotFoundException;
 import com.ticketrush.hold.dto.HoldRequest;
 import com.ticketrush.hold.dto.HoldResponse;
+import com.ticketrush.ratelimit.QuotaLockService;
 import com.ticketrush.seat.SeatRepository;
+import com.ticketrush.seat.SeatStateOutboxWriter;
 import com.ticketrush.seat.SeatStatus;
 import com.ticketrush.seat.SeatUnavailableException;
 import com.ticketrush.show.Show;
@@ -24,17 +27,23 @@ public class HoldServiceImpl implements HoldService {
     private final ShowRepository showRepository;
     private final UserRepository userRepository;
     private final HoldRepository holdRepository;
+    private final SeatStateOutboxWriter seatStateOutboxWriter;
+    private final QuotaLockService quotaLockService;
 
     public HoldServiceImpl(
             SeatRepository seatRepository,
             ShowRepository showRepository,
             UserRepository userRepository,
-            HoldRepository holdRepository
+            HoldRepository holdRepository,
+            SeatStateOutboxWriter seatStateOutboxWriter,
+            QuotaLockService quotaLockService
     ) {
         this.seatRepository = seatRepository;
         this.showRepository = showRepository;
         this.userRepository = userRepository;
         this.holdRepository = holdRepository;
+        this.seatStateOutboxWriter = seatStateOutboxWriter;
+        this.quotaLockService = quotaLockService;
     }
 
     @Override
@@ -59,7 +68,25 @@ public class HoldServiceImpl implements HoldService {
                 .sorted()
                 .toList();
 
-        OffsetDateTime expiresAt = OffsetDateTime.now().plusMinutes(5);
+        // 1. Transactional advisory locks in deterministic order (user first, then user+show)
+        quotaLockService.lockUserHolds(user.getId());
+        quotaLockService.lockUserShowSeats(user.getId(), showId);
+
+        OffsetDateTime now = OffsetDateTime.now();
+
+        // 2. Business rule 1: Max 3 active holds per user across all shows
+        long activeHolds = holdRepository.countActiveHolds(user.getId(), now);
+        if (activeHolds >= 3) {
+            throw new BusinessRuleException("Maximum 3 active holds are allowed.");
+        }
+
+        // 3. Business rule 2: Max 6 seats held per user per show
+        long activeHeldSeats = seatRepository.countActiveHeldSeats(showId, user.getId(), now);
+        if (activeHeldSeats + seatIds.size() > 6) {
+            throw new BusinessRuleException("You can hold a maximum of 6 seats per show.");
+        }
+
+        OffsetDateTime expiresAt = now.plusMinutes(5);
 
         // Lock seats in deterministic order to prevent deadlocks
         seatRepository.lockSeatsForUpdate(seatIds);
@@ -83,9 +110,10 @@ public class HoldServiceImpl implements HoldService {
         hold.setSeatIds(seatIds);
         hold.setExpiresAt(expiresAt);
         hold.setStatus(HoldStatus.ACTIVE);
-        hold.setCreatedAt(OffsetDateTime.now());
+        hold.setCreatedAt(now);
 
         Hold savedHold = holdRepository.save(hold);
+        seatStateOutboxWriter.write(showId, seatIds, "HELD");
 
         return new HoldResponse(
                 savedHold.getId(),
