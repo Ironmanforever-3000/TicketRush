@@ -27,13 +27,14 @@ public class SecurityConfig {
                 // public
                 .requestMatchers("/api/v1/auth/**", "/health", "/actuator/health", "/gate.html").permitAll()
                 .requestMatchers("/ws/**").permitAll()
+                // waiting room (must come BEFORE generic /api/v1/shows/** GET permitAll)
+                .requestMatchers(HttpMethod.POST, "/api/v1/shows/*/waiting-room/admit").hasAnyRole("ORGANIZER", "ADMIN")
+                .requestMatchers("/api/v1/shows/*/waiting-room/**").hasAnyRole("CUSTOMER", "ORGANIZER", "ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/v1/events/**", "/api/v1/venues/**", "/api/v1/shows/**").permitAll()
                 // admin-only
                 .requestMatchers("/actuator/**").hasRole("ADMIN")
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-                // buying & waiting room: must come BEFORE generic /api/v1/shows/** GET permitAll
-                .requestMatchers(HttpMethod.POST, "/api/v1/shows/*/waiting-room/admit").hasAnyRole("ORGANIZER", "ADMIN")
-                .requestMatchers("/api/v1/shows/*/waiting-room/**").hasAnyRole("CUSTOMER", "ORGANIZER", "ADMIN")
+                // buying: must come BEFORE generic catalogue POST rules
                 .requestMatchers(HttpMethod.POST, "/api/v1/shows/*/holds").hasAnyRole("CUSTOMER", "ORGANIZER", "ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/v1/shows/*/checkin").hasAnyRole("ORGANIZER", "ADMIN")
                 .requestMatchers("/api/v1/organizer/**").hasAnyRole("ORGANIZER", "ADMIN")

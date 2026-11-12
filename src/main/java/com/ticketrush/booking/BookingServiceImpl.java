@@ -253,22 +253,26 @@ public class BookingServiceImpl implements BookingService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot cancel booking with used tickets");
         }
 
-        ticketRepository.cancelValidByBooking(bookingId);
-
         Long showId = booking.getShow().getId();
+        long totalCents = booking.getTotalCents();
         List<Long> seatIds = booking.getBookingSeats().stream()
                 .map(bs -> bs.getSeat().getId())
                 .sorted()
                 .toList();
 
-        booking.setStatus(BookingStatus.CANCELLED);
-        bookingRepository.save(booking);
+        // cancelValidByBooking uses @Modifying(clearAutomatically = true), so reload Booking cleanly afterward
+        ticketRepository.cancelValidByBooking(bookingId);
+
+        Booking managedBooking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+        managedBooking.setStatus(BookingStatus.CANCELLED);
+        bookingRepository.save(managedBooking);
 
         if (refundRepository.findByBookingId(bookingId).isEmpty()) {
             Refund refund = new Refund();
-            refund.setBooking(booking);
-            refund.setUser(booking.getUser());
-            refund.setAmountCents(booking.getTotalCents());
+            refund.setBooking(managedBooking);
+            refund.setUser(managedBooking.getUser());
+            refund.setAmountCents(totalCents);
             refund.setStatus(RefundStatus.PROCESSED);
             refund.setReason("USER_CANCELLED");
             refundRepository.save(refund);
@@ -280,10 +284,10 @@ public class BookingServiceImpl implements BookingService {
         }
 
         return new BookingResponse(
-                booking.getId(),
+                bookingId,
                 showId,
                 seatIds,
-                booking.getTotalCents(),
+                totalCents,
                 BookingStatus.CANCELLED.name()
         );
     }

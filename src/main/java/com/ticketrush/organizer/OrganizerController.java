@@ -83,7 +83,12 @@ public class OrganizerController {
     }
 
     private long[] loadOrganizerTotals(Long organizerId) {
-        try {
+        Integer summaryTableCount = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                  FROM information_schema.tables
+                 WHERE LOWER(table_name) = 'organizer_sales_summary'
+                """, Integer.class);
+        if (summaryTableCount != null && summaryTableCount > 0) {
             var rows = jdbcTemplate.queryForList("""
                     SELECT total_tickets_sold, total_revenue_cents
                       FROM organizer_sales_summary
@@ -96,28 +101,26 @@ public class OrganizerController {
                         toLong(row.get("total_revenue_cents"))
                 };
             }
-        } catch (Exception ignored) {
-            // Fall back to transactional tables when organizer_sales_summary is not present (e.g. H2 unit profile)
         }
 
-        Map<String, Object> fallback = jdbcTemplate.queryForMap("""
-                SELECT COUNT(t.id) AS total_tickets,
-                       COALESCE((
-                           SELECT SUM(b2.total_cents)
-                             FROM bookings b2
-                             JOIN shows s2 ON s2.id = b2.show_id
-                             JOIN events e2 ON e2.id = s2.event_id
-                            WHERE e2.organizer_id = ? AND b2.status = 'CONFIRMED'
-                       ), 0) AS total_revenue_cents
+        Number totalTickets = jdbcTemplate.queryForObject("""
+                SELECT COUNT(t.id)
+                  FROM tickets t
+                  JOIN bookings b ON b.id = t.booking_id
+                  JOIN shows s ON s.id = b.show_id
+                  JOIN events e ON e.id = s.event_id
+                 WHERE e.organizer_id = ? AND b.status = 'CONFIRMED'
+                """, Long.class, organizerId);
+        Number totalRevenue = jdbcTemplate.queryForObject("""
+                SELECT COALESCE(SUM(b.total_cents), 0)
                   FROM bookings b
                   JOIN shows s ON s.id = b.show_id
                   JOIN events e ON e.id = s.event_id
-                  LEFT JOIN tickets t ON t.booking_id = b.id
                  WHERE e.organizer_id = ? AND b.status = 'CONFIRMED'
-                """, organizerId, organizerId);
+                """, Long.class, organizerId);
         return new long[]{
-                toLong(fallback.get("total_tickets")),
-                toLong(fallback.get("total_revenue_cents"))
+                toLong(totalTickets),
+                toLong(totalRevenue)
         };
     }
 
