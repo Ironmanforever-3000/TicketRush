@@ -1,24 +1,21 @@
 package com.ticketrush.waitingroom;
 
+import com.ticketrush.exception.BadRequestException;
 import com.ticketrush.exception.ResourceNotFoundException;
 import com.ticketrush.security.OwnershipService;
 import com.ticketrush.show.ShowRepository;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/shows/{showId}/waiting-room")
-@Validated
 public class WaitingRoomController {
 
     private final WaitingRoomService waitingRoomService;
@@ -60,7 +57,10 @@ public class WaitingRoomController {
     @PreAuthorize("hasRole('ADMIN') or @ownership.isShowOwner(#showId, authentication)")
     public List<WaitingRoomService.AdmittedUser> admitNextBatch(
             @PathVariable Long showId,
-            @RequestParam(defaultValue = "50") @Min(1) @Max(500) int count) {
+            @RequestParam(defaultValue = "50") int count) {
+        if (count < 1 || count > 500) {
+            throw new BadRequestException("count must be between 1 and 500");
+        }
         ensureShowExists(showId);
         return waitingRoomService.admitNextBatch(showId, count);
     }

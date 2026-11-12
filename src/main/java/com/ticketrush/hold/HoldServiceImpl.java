@@ -56,7 +56,7 @@ public class HoldServiceImpl implements HoldService {
         Show show = showRepository.findById(showId)
                 .orElseThrow(() -> new ResourceNotFoundException("Show not found with id: " + showId));
 
-        EventStatus eventStatus = show.getEvent().getStatus();
+        EventStatus eventStatus = show.getEvent() != null ? show.getEvent().getStatus() : null;
         if (eventStatus == EventStatus.SUSPENDED || eventStatus == EventStatus.CANCELLED) {
             throw new BusinessRuleException("Event is " + eventStatus.name().toLowerCase() + " and cannot accept holds.");
         }
