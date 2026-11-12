@@ -9,10 +9,10 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -93,6 +93,16 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.FORBIDDEN, "FORBIDDEN", "You do not have permission to perform this action", null);
     }
 
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ErrorResponse> handleResponseStatus(ResponseStatusException ex) {
+        HttpStatus status = HttpStatus.resolve(ex.getStatusCode().value());
+        if (status == null) {
+            status = HttpStatus.INTERNAL_SERVER_ERROR;
+        }
+        return buildResponse(status, status.name(),
+                ex.getReason() != null ? ex.getReason() : status.getReasonPhrase(), null);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR",
@@ -102,7 +112,7 @@ public class GlobalExceptionHandler {
     private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String code,
             String message, Map<String, String> details) {
         ErrorResponse.ErrorDetail detail = new ErrorResponse.ErrorDetail(
-                code, message, details, UUID.randomUUID().toString());
+                code, message, details, TraceIdContext.currentOrNew());
         return new ResponseEntity<>(new ErrorResponse(detail), status);
     }
 }

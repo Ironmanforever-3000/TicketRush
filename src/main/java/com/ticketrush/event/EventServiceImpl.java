@@ -66,7 +66,7 @@ public class EventServiceImpl implements EventService {
         if (request.title() != null) event.setTitle(request.title());
         if (request.description() != null) event.setDescription(request.description());
         if (request.category() != null) event.setCategory(request.category());
-        if (request.status() != null) event.setStatus(com.ticketrush.event.EventStatus.DRAFT);
+        if (request.status() != null) event.setStatus(request.status());
         
         event = eventRepository.save(event);
         return mapToResponse(event);

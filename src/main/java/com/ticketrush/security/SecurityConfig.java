@@ -31,14 +31,18 @@ public class SecurityConfig {
                 // admin-only
                 .requestMatchers("/actuator/**").hasRole("ADMIN")
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-                // buying: must come BEFORE the generic POST rules
+                // buying & waiting room: must come BEFORE generic /api/v1/shows/** GET permitAll
+                .requestMatchers(HttpMethod.POST, "/api/v1/shows/*/waiting-room/admit").hasAnyRole("ORGANIZER", "ADMIN")
+                .requestMatchers("/api/v1/shows/*/waiting-room/**").hasAnyRole("CUSTOMER", "ORGANIZER", "ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/v1/shows/*/holds").hasAnyRole("CUSTOMER", "ORGANIZER", "ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/v1/shows/*/checkin").hasAnyRole("ORGANIZER", "ADMIN")
+                .requestMatchers("/api/v1/organizer/**").hasAnyRole("ORGANIZER", "ADMIN")
                 .requestMatchers("/api/v1/bookings/**").hasAnyRole("CUSTOMER", "ORGANIZER", "ADMIN")
                 .requestMatchers("/api/v1/tickets/**").hasAnyRole("CUSTOMER", "ORGANIZER", "ADMIN")
                 // catalogue writes
                 .requestMatchers(HttpMethod.POST, "/api/v1/events", "/api/v1/venues", "/api/v1/shows").hasAnyRole("ORGANIZER", "ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/v1/events/*", "/api/v1/venues/*", "/api/v1/shows/*").hasAnyRole("ORGANIZER", "ADMIN")
+                .requestMatchers(HttpMethod.PATCH, "/api/v1/events/*", "/api/v1/venues/*", "/api/v1/shows/*").hasAnyRole("ORGANIZER", "ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/events/*", "/api/v1/venues/*", "/api/v1/shows/*").hasAnyRole("ORGANIZER", "ADMIN")
                 // safety net
                 .anyRequest().authenticated()

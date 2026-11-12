@@ -2,6 +2,7 @@ package com.ticketrush.ratelimit;
 
 import com.ticketrush.exception.ErrorResponse;
 import com.ticketrush.exception.ErrorResponse.ErrorDetail;
+import com.ticketrush.exception.TraceIdContext;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -25,7 +26,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 @Component
 @Profile("!worker")
@@ -158,7 +158,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         response.setStatus(status.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");
-        ErrorDetail detail = new ErrorDetail(code, message, null, UUID.randomUUID().toString());
+        ErrorDetail detail = new ErrorDetail(code, message, null, TraceIdContext.currentOrNew());
         ErrorResponse errorResponse = new ErrorResponse(detail);
         response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
         response.getWriter().flush();

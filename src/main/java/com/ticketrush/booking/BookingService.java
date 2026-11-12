@@ -16,4 +16,6 @@ public interface BookingService {
     BookingResponse getBookingById(Long userId, Long bookingId, boolean isAdmin);
 
     BookingResponse cancelBooking(Long userId, Long bookingId, boolean isAdmin);
+
+    RefundResponse getRefundByBookingId(Long userId, Long bookingId, boolean isAdmin);
 }

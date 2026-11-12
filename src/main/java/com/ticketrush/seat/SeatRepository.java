@@ -10,9 +10,31 @@ import java.util.List;
 
 public interface SeatRepository extends JpaRepository<Seat, Long> {
 
-    List<Seat> findByShowIdOrderByRowLabelAscSeatNumberAsc(Long showId);
+    @Query("""
+        SELECT s FROM Seat s
+        JOIN FETCH s.tier
+        WHERE s.show.id = :showId
+        ORDER BY s.rowLabel ASC, s.seatNumber ASC
+    """)
+    List<Seat> findByShowIdOrderByRowLabelAscSeatNumberAsc(@Param("showId") Long showId);
 
-    @Modifying(clearAutomatically = true)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("""
+        UPDATE Seat s
+           SET s.status = com.ticketrush.seat.SeatStatus.AVAILABLE,
+               s.heldBy = null,
+               s.holdExpiresAt = null,
+               s.version = s.version + 1
+         WHERE s.id IN :seatIds
+           AND s.show.id = :showId
+           AND s.status = com.ticketrush.seat.SeatStatus.SOLD
+    """)
+    int releaseSoldSeats(
+        @Param("seatIds") List<Long> seatIds,
+        @Param("showId") Long showId
+    );
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("""
         UPDATE Seat s
            SET s.status = :status,
@@ -65,7 +87,7 @@ public interface SeatRepository extends JpaRepository<Seat, Long> {
         """, nativeQuery = true)
     List<ReleasedSeatRow> releaseExpiredSeatsReturning();
 
-    @Modifying(clearAutomatically = true)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("""
         UPDATE Seat s
            SET s.status = com.ticketrush.seat.SeatStatus.SOLD,

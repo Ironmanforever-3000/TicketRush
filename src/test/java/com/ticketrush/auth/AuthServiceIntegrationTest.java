@@ -103,4 +103,23 @@ class AuthServiceIntegrationTest {
                 .isInstanceOf(InvalidCredentialsException.class)
                 .hasMessageContaining("Invalid email or password");
     }
+
+    @Test
+    void loginAndRefresh_RejectSuspendedUser() {
+        RegisterResponse registered = authService.register(
+                new RegisterRequest("Suspended User", "suspended@example.com", "Secret123!"));
+        LoginResponse initial = authService.login(new LoginRequest("suspended@example.com", "Secret123!"));
+
+        User user = userRepository.findById(registered.userId()).orElseThrow();
+        user.setActive(false);
+        userRepository.save(user);
+
+        assertThatThrownBy(() -> authService.login(new LoginRequest("suspended@example.com", "Secret123!")))
+                .isInstanceOf(InvalidCredentialsException.class)
+                .hasMessageContaining("suspended");
+
+        assertThatThrownBy(() -> authService.refresh(new RefreshRequest(initial.refreshToken())))
+                .isInstanceOf(InvalidCredentialsException.class)
+                .hasMessageContaining("suspended");
+    }
 }

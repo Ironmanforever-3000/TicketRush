@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -22,6 +23,7 @@ public class EventController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('ORGANIZER') and (#request.organizerId() == null or @ownership.isSelf(#request.organizerId(), authentication)))")
     public EventResponse createEvent(@Valid @RequestBody EventCreateRequest request) {
         return eventService.createEvent(request);
     }
@@ -43,12 +45,14 @@ public class EventController {
     }
 
     @PatchMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @ownership.isEventOwner(#id, authentication)")
     public EventResponse updateEvent(@PathVariable Long id, @Valid @RequestBody EventUpdateRequest request) {
         return eventService.updateEvent(id, request);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('ADMIN') or @ownership.isEventOwner(#id, authentication)")
     public void deleteEvent(@PathVariable Long id) {
         eventService.deleteEvent(id);
     }

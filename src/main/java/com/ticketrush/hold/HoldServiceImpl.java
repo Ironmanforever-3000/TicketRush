@@ -1,5 +1,6 @@
 package com.ticketrush.hold;
 
+import com.ticketrush.event.EventStatus;
 import com.ticketrush.exception.BadRequestException;
 import com.ticketrush.exception.BusinessRuleException;
 import com.ticketrush.exception.ResourceNotFoundException;
@@ -54,6 +55,11 @@ public class HoldServiceImpl implements HoldService {
     ) {
         Show show = showRepository.findById(showId)
                 .orElseThrow(() -> new ResourceNotFoundException("Show not found with id: " + showId));
+
+        EventStatus eventStatus = show.getEvent().getStatus();
+        if (eventStatus == EventStatus.SUSPENDED || eventStatus == EventStatus.CANCELLED) {
+            throw new BusinessRuleException("Event is " + eventStatus.name().toLowerCase() + " and cannot accept holds.");
+        }
 
         User user = userRepository.findById(request.userId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + request.userId()));

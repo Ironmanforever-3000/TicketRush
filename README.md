@@ -49,7 +49,7 @@ Seats are generated dynamically and saved using high-performance JPA batch opera
 ## Phases & Roadmap
 - ✅ **Phase 1**: Foundations & Core CRUD (Venues, Events, Shows, dynamic Seat generation with batching & N+1 prevention).
 - ✅ **Phase 2**: High Concurrency & Resiliency (Atomic seat holds, deadlock prevention, hold expiry sweeper, idempotent booking confirmation, and transactional outbox).
-- ✅ **Phase 3**: Authentication, Security & Caching (BCrypt hashing, RSA JWT authentication, refresh token rotation/revocation, RBAC, Redis cache-aside).
+- ✅ **Phase 3**: Authentication, Security & Caching (BCrypt hashing, HS256 JWT authentication (CUSTOMER / ORGANIZER / ADMIN + resource ownership), refresh token rotation/revocation, RBAC, Redis cache-aside).
 - ✅ **Phase 4**: Event-Driven Outbox & Redis Streams (Decoupled workers, consumer groups, pending sweeper recovery, dead-letter stream).
 - ✅ **Phase 5**: Real-Time Seat Map Updates (STOMP WebSocket, Redis Pub/Sub broadcast, inbound JWT auth, backpressure, connection metrics, multi-instance horizontal scaling).
 - ✅ **Phase 6**: High-Throughput Protection & Observability (Distributed Token Bucket Rate Limiting with atomic Lua scripts, Per-User Advisory Lock Quotas, Waiting Room integration, Actuator Metrics & Prometheus/Micrometer gauges, k6 Load Testing).
@@ -173,3 +173,22 @@ Phase 2 handles extreme contention:
 * **SERIALIZABLE Isolation**: conflicts become transaction failures ⚠️ (Database enforces correctness but introduces serialization errors `SQLSTATE 40001` that must be retried. *Note: this is distinct from deadlocks `40P01`, which are caused by lock-ordering inversion*).
 * **Conditional Atomic UPDATE**: 200 users → exactly 1 successful hold ✅ (Database evaluates WHERE status = 'AVAILABLE', clean 409 rejections)
 * **Deadlock Prevention**: Sorting seat IDs and locking via `SELECT ... FOR UPDATE` ensures deterministic lock acquisition, preventing circular waits.
+
+## Recent Hardening & API Additions (Post-Phase 6 Verification)
+
+- **Role & Ownership Enforcement (`@PreAuthorize` + `OwnershipService`)**:
+  - Three roles (`CUSTOMER`, `ORGANIZER`, `ADMIN`) backed by `HS256` JWT claims.
+  - `SecurityConfig` restricts `POST`, `PUT`, `PATCH`, and `DELETE` on `/api/v1/events/*`, `/api/v1/venues/*`, and `/api/v1/shows/*` to `ORGANIZER`/`ADMIN`.
+  - Event and show mutations, check-in, waiting-room admission, and organizer show stats verify resource ownership (`isSelf`, `isEventOwner`, `isShowOwner`) so organizers cannot modify or view another organizer's resources.
+- **Booking Cancellation & Refund Workflow (`V14__refunds.sql`)**:
+  - Both `DELETE /api/v1/bookings/{bookingId}` and `POST /api/v1/bookings/{bookingId}/cancel` transition `CONFIRMED` bookings to `CANCELLED`, reject bookings with `USED` tickets (`409 Conflict`), cancel valid tickets, release `SOLD` seats back to `AVAILABLE` (emitting outbox `"AVAILABLE"` events), and create a `PROCESSED` `Refund` record.
+  - `GET /api/v1/bookings/{bookingId}/refund` returns the persisted refund record.
+- **Admin, Organizer & Waiting-Room APIs**:
+  - `POST /api/v1/admin/events/{id}/suspend`: Suspends an event and blocks new seat holds on its shows (`409 Conflict`).
+  - `POST /api/v1/admin/users/{id}/suspend`: Deactivates the account, revokes active refresh tokens, and blocks `/api/v1/auth/login` and `/api/v1/auth/refresh`.
+  - `GET /api/v1/admin/health`: Reports live PostgreSQL, Redis, and active hold health.
+  - `GET /api/v1/organizer/shows/{id}/stats`: Returns per-show seat counts, booking/revenue totals, ticket status breakdown, and organizer-level totals.
+  - `POST /api/v1/shows/{showId}/waiting-room/join`, `GET /position`, `POST /admit`, `POST /validate`: REST endpoints backed by Redis ZSET queue and one-time HMAC admission tokens.
+- **Observability & Query Performance**:
+  - `TraceIdFilter` + `TraceIdContext` correlate `X-Trace-Id` headers and SLF4J MDC across `GlobalExceptionHandler`, `RestSecurityErrorHandler`, and `RateLimitInterceptor`.
+  - `SeatRepository.findByShowIdOrderByRowLabelAscSeatNumberAsc` uses `JOIN FETCH s.tier` to eliminate lazy tier N+1 queries on show seatmaps, verified with Hibernate statistics regression tests (`ticketrush:dead-letter` stream used for dead-lettered worker events).

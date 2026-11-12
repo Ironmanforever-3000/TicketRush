@@ -10,4 +10,6 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             String category,
             Pageable pageable
     );
+
+    boolean existsByIdAndOrganizer_Id(Long eventId, Long organizerId);
 }

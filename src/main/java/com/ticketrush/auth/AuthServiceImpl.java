@@ -67,6 +67,9 @@ public class AuthServiceImpl implements AuthService {
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw new InvalidCredentialsException("Invalid email or password");
         }
+        if (!user.isActive()) {
+            throw new InvalidCredentialsException("User account is suspended");
+        }
 
         String token = jwtService.generateToken(user.getEmail(), user.getRole().name(), user.getId());
         String refreshToken = refreshTokenService.createToken(user);
@@ -79,6 +82,9 @@ public class AuthServiceImpl implements AuthService {
     public LoginResponse refresh(RefreshRequest request) {
         User user = refreshTokenService.validateToken(request.refreshToken())
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid or expired refresh token"));
+        if (!user.isActive()) {
+            throw new InvalidCredentialsException("User account is suspended");
+        }
 
         String newRefreshToken = refreshTokenService.rotateToken(request.refreshToken());
         String newAccessToken = jwtService.generateToken(user.getEmail(), user.getRole().name(), user.getId());

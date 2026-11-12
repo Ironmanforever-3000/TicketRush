@@ -1,42 +1,77 @@
 package com.ticketrush.security;
 
+import com.ticketrush.event.EventRepository;
 import com.ticketrush.show.ShowRepository;
 import com.ticketrush.user.UserRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.function.LongPredicate;
 
 @Service("ownership")
 public class OwnershipService {
 
+    private final EventRepository eventRepository;
     private final ShowRepository showRepository;
     private final UserRepository userRepository;
 
-    public OwnershipService(ShowRepository showRepository, UserRepository userRepository) {
+    public OwnershipService(
+            EventRepository eventRepository,
+            ShowRepository showRepository,
+            UserRepository userRepository) {
+        this.eventRepository = eventRepository;
         this.showRepository = showRepository;
         this.userRepository = userRepository;
     }
 
+    public boolean isAdmin(Authentication authentication) {
+        return authentication != null && authentication.isAuthenticated() && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ADMIN"));
+    }
+
     @Transactional(readOnly = true)
     public boolean isShowOwner(Long showId, Authentication authentication) {
-        if (showId == null || authentication == null || !authentication.isAuthenticated()) {
+        return showId != null && checkOwnership(authentication, userId ->
+                showRepository.existsByIdAndEvent_Organizer_Id(showId, userId));
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isEventOwner(Long eventId, Authentication authentication) {
+        return eventId != null && checkOwnership(authentication, userId ->
+                eventRepository.existsByIdAndOrganizer_Id(eventId, userId));
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isSelf(Long targetUserId, Authentication authentication) {
+        return targetUserId != null && checkOwnership(authentication, userId ->
+                targetUserId.equals(userId));
+    }
+
+    private boolean checkOwnership(Authentication authentication, LongPredicate predicate) {
+        if (authentication == null || !authentication.isAuthenticated()) {
             return false;
         }
-
-        // Admin has universal access
-        if (authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ADMIN"))) {
+        if (isAdmin(authentication)) {
             return true;
         }
-
         Long userId = extractUserId(authentication);
-        if (userId == null) {
-            return false;
-        }
+        return userId != null && predicate.test(userId);
+    }
 
-        return showRepository.existsByIdAndEvent_Organizer_Id(showId, userId);
+    public Long requireUserId(Jwt jwt, Authentication authentication) {
+        Long userId = extractUserId(authentication);
+        if (userId == null && jwt != null) {
+            userId = extractUserIdFromJwt(jwt);
+        }
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated");
+        }
+        return userId;
     }
 
     public Long extractUserId(Authentication authentication) {

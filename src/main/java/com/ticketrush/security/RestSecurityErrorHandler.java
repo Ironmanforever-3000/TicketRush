@@ -2,6 +2,7 @@ package com.ticketrush.security;
 
 import tools.jackson.databind.ObjectMapper;
 import com.ticketrush.exception.ErrorResponse;
+import com.ticketrush.exception.TraceIdContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
@@ -14,7 +15,6 @@ import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.UUID;
 
 @Component
 public class RestSecurityErrorHandler implements AuthenticationEntryPoint, AccessDeniedHandler {
@@ -40,7 +40,7 @@ public class RestSecurityErrorHandler implements AuthenticationEntryPoint, Acces
         res.setStatus(s.value());
         res.setContentType(MediaType.APPLICATION_JSON_VALUE);
         ErrorResponse.ErrorDetail detail = new ErrorResponse.ErrorDetail(
-                code, msg, null, UUID.randomUUID().toString());
+                code, msg, null, TraceIdContext.currentOrNew());
         mapper.writeValue(res.getOutputStream(), new ErrorResponse(detail));
     }
 }

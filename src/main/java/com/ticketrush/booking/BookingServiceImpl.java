@@ -40,6 +40,7 @@ public class BookingServiceImpl implements BookingService {
     private final ShowRepository showRepository;
     private final TicketService ticketService;
     private final TicketRepository ticketRepository;
+    private final RefundRepository refundRepository;
     private final ObjectMapper objectMapper;
     private final SeatStateOutboxWriter seatStateOutboxWriter;
 
@@ -52,6 +53,7 @@ public class BookingServiceImpl implements BookingService {
             ShowRepository showRepository,
             TicketService ticketService,
             TicketRepository ticketRepository,
+            RefundRepository refundRepository,
             ObjectMapper objectMapper,
             SeatStateOutboxWriter seatStateOutboxWriter) {
         this.bookingRepository = bookingRepository;
@@ -62,6 +64,7 @@ public class BookingServiceImpl implements BookingService {
         this.showRepository = showRepository;
         this.ticketService = ticketService;
         this.ticketRepository = ticketRepository;
+        this.refundRepository = refundRepository;
         this.objectMapper = objectMapper;
         this.seatStateOutboxWriter = seatStateOutboxWriter;
     }
@@ -230,33 +233,76 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional(readOnly = true)
     public BookingResponse getBookingById(Long userId, Long bookingId, boolean isAdmin) {
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
-        if (!isAdmin && !booking.getUser().getId().equals(userId)) {
-            throw new ResourceNotFoundException("Booking not found");
-        }
-        return toResponse(booking);
+        return toResponse(findAuthorizedBooking(userId, bookingId, isAdmin));
     }
 
     @Override
     @Transactional
     public BookingResponse cancelBooking(Long userId, Long bookingId, boolean isAdmin) {
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
-        if (!isAdmin && !booking.getUser().getId().equals(userId)) {
-            throw new ResourceNotFoundException("Booking not found");
-        }
+        Booking booking = findAuthorizedBooking(userId, bookingId, isAdmin);
         if (booking.getStatus() == BookingStatus.CANCELLED) {
             return toResponse(booking);
+        }
+        if (booking.getStatus() != BookingStatus.CONFIRMED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Only confirmed bookings can be cancelled");
         }
         boolean hasUsedTickets = ticketRepository.findByBookingId(bookingId).stream()
                 .anyMatch(t -> t.getStatus() == TicketStatus.USED);
         if (hasUsedTickets) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot cancel booking with used tickets");
         }
+
         ticketRepository.cancelValidByBooking(bookingId);
+
+        Long showId = booking.getShow().getId();
+        List<Long> seatIds = booking.getBookingSeats().stream()
+                .map(bs -> bs.getSeat().getId())
+                .sorted()
+                .toList();
+
         booking.setStatus(BookingStatus.CANCELLED);
         bookingRepository.save(booking);
-        return toResponse(booking);
+
+        if (refundRepository.findByBookingId(bookingId).isEmpty()) {
+            Refund refund = new Refund();
+            refund.setBooking(booking);
+            refund.setUser(booking.getUser());
+            refund.setAmountCents(booking.getTotalCents());
+            refund.setStatus(RefundStatus.PROCESSED);
+            refund.setReason("USER_CANCELLED");
+            refundRepository.save(refund);
+        }
+
+        if (!seatIds.isEmpty()) {
+            seatRepository.releaseSoldSeats(seatIds, showId);
+            seatStateOutboxWriter.write(showId, seatIds, "AVAILABLE");
+        }
+
+        return new BookingResponse(
+                booking.getId(),
+                showId,
+                seatIds,
+                booking.getTotalCents(),
+                BookingStatus.CANCELLED.name()
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RefundResponse getRefundByBookingId(Long userId, Long bookingId, boolean isAdmin) {
+        findAuthorizedBooking(userId, bookingId, isAdmin);
+        Refund refund = refundRepository.findByBookingId(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Refund not found"));
+        return RefundResponse.from(refund);
+    }
+
+    private Booking findAuthorizedBooking(Long userId, Long bookingId, boolean isAdmin) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+        if (!isAdmin && !booking.getUser().getId().equals(userId)) {
+            throw new ResourceNotFoundException("Booking not found");
+        }
+        return booking;
     }
 }

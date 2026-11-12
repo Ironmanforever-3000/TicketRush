@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -23,6 +24,7 @@ public class ShowController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('ORGANIZER') and (#request.eventId() == null or @ownership.isEventOwner(#request.eventId(), authentication)))")
     public ShowResponse createShow(@Valid @RequestBody ShowCreateRequest request) {
         return showService.createShow(request);
     }
@@ -42,12 +44,14 @@ public class ShowController {
     }
 
     @PatchMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @ownership.isShowOwner(#id, authentication)")
     public ShowResponse updateShow(@PathVariable Long id, @Valid @RequestBody ShowUpdateRequest request) {
         return showService.updateShow(id, request);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('ADMIN') or @ownership.isShowOwner(#id, authentication)")
     public void deleteShow(@PathVariable Long id) {
         showService.deleteShow(id);
     }
