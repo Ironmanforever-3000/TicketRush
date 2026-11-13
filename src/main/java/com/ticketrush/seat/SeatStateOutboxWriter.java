@@ -1,5 +1,6 @@
 package com.ticketrush.seat;
 
+import com.ticketrush.cache.SeatMapCache;
 import com.ticketrush.outbox.OutboxEvent;
 import com.ticketrush.outbox.OutboxRepository;
 import org.springframework.stereotype.Component;
@@ -14,10 +15,12 @@ import java.util.List;
 public class SeatStateOutboxWriter {
     private final OutboxRepository outbox;
     private final ObjectMapper mapper;
+    private final SeatMapCache seatMapCache;
 
-    public SeatStateOutboxWriter(OutboxRepository outbox, ObjectMapper mapper) {
+    public SeatStateOutboxWriter(OutboxRepository outbox, ObjectMapper mapper, SeatMapCache seatMapCache) {
         this.outbox = outbox;
         this.mapper = mapper;
+        this.seatMapCache = seatMapCache;
     }
 
     /** Must run inside the caller's own transaction — the seat update and this outbox row
@@ -40,5 +43,8 @@ public class SeatStateOutboxWriter {
         } catch (Exception ex) {
             throw new IllegalStateException("Failed to serialize seat state event", ex);
         }
+
+        // Bump the seatmap cache version so stale reads expire naturally
+        seatMapCache.bumpVersion(showId, e.getId());
     }
 }

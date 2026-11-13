@@ -192,3 +192,24 @@ Phase 2 handles extreme contention:
 - **Observability & Query Performance**:
   - `TraceIdFilter` + `TraceIdContext` correlate `X-Trace-Id` headers and SLF4J MDC across `GlobalExceptionHandler`, `RestSecurityErrorHandler`, and `RateLimitInterceptor`.
   - `SeatRepository.findByShowIdOrderByRowLabelAscSeatNumberAsc` uses `JOIN FETCH s.tier` to eliminate lazy tier N+1 queries on show seatmaps, verified with Hibernate statistics regression tests (`ticketrush:dead-letter` stream used for dead-lettered worker events).
+
+## Phase 7: Caching & Performance Architecture (Stage A)
+
+- **Generic Cache-Aside Service (`CacheAsideService`)**:
+  - Redis cache-aside implementation with automatic random TTL jitter (up to 20%) to eliminate simultaneous cache expiration storms.
+  - Instrumented with Micrometer metrics (`ticketrush.cache.hits` and `ticketrush.cache.misses` tagged with `cache=<name>`).
+  - Integrated into `EventServiceImpl.getAllEvents()` under key prefix `ticketrush:cache:events:{category}:{page}:{size}` (45s base TTL).
+  - All Redis operations are resilient: exceptions gracefully fall through to Postgres so cache unavailability never fails user traffic.
+
+- **Versioned Seatmap Cache & Anti-Resurrection Architecture (`SeatMapCache`)**:
+  - **The Problem (Naive Invalidation)**: Concurrent hold writes and seatmap reads can cause stale resurrection (reader loads AVAILABLE from DB; writer transitions seat to HELD and deletes cache key; reader writes stale AVAILABLE back to cache).
+  - **The Solution (Versioned Cache)**: Outbox writer bumps `ticketrush:cache:seatmap:version:{showId}` atomically on every seat state change using the monotonic outbox event ID. Seatmaps are cached at `ticketrush:cache:seatmap:data:{showId}:v{version}` with 10s TTL backstop. Stale readers write to orphaned old versions that are never served again.
+  - **Stampede Protection**: `SET NX` lock (`ticketrush:cache:seatmap:lock:{showId}`, 3s TTL) with 50ms backoff-and-retry. Exactly 1 request queries Postgres on miss; remaining concurrent requests read the populated Redis key.
+  - **Verification**: `SeatMapCacheRaceConditionTest` validates the failure mode of the naive cache and verifies zero resurrection under the versioned cache.
+
+- **PostgreSQL Database Tuning (`V15__pg_stat_statements_and_indexes.sql`)**:
+  - Enabled `pg_stat_statements` with `shared_preload_libraries` in `docker-compose.yml`.
+  - Added partial index `idx_seats_user_quota` on `seats(show_id, held_by, status) WHERE status = 'HELD'`.
+  - Added partial index `idx_holds_user_quota` on `holds(user_id, status, expires_at) WHERE status = 'ACTIVE'`.
+  - Benchmark script `tests/load/phase7-stampede.js` simulating 500 VUs over 3s stampede load.
+

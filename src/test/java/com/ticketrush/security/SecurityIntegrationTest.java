@@ -1,5 +1,6 @@
 package com.ticketrush.security;
 
+import com.ticketrush.TestcontainersConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -31,7 +32,7 @@ import org.springframework.context.annotation.Import;
 
 @SpringBootTest(properties = "spring.main.allow-bean-definition-overriding=true")
 @AutoConfigureMockMvc
-@Import(SecurityIntegrationTest.DummyControllerConfig.class)
+@Import({TestcontainersConfig.class, SecurityIntegrationTest.DummyControllerConfig.class})
 public class SecurityIntegrationTest {
 
     @TestConfiguration

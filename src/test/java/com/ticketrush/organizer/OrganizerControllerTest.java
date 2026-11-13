@@ -1,7 +1,6 @@
 package com.ticketrush.organizer;
 
 import com.ticketrush.auth.AuthService;
-import com.ticketrush.auth.InvalidCredentialsException;
 import com.ticketrush.auth.Role;
 import com.ticketrush.booking.*;
 import com.ticketrush.event.Event;

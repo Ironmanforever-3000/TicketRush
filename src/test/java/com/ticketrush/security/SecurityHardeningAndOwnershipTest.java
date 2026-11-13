@@ -16,7 +16,6 @@ import com.ticketrush.show.dto.SeatTierRequest;
 import com.ticketrush.show.dto.ShowCreateRequest;
 import com.ticketrush.show.dto.ShowUpdateRequest;
 import com.ticketrush.user.User;
-import com.ticketrush.venue.Venue;
 import com.ticketrush.venue.dto.VenueUpdateRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

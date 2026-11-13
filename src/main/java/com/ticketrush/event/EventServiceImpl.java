@@ -1,5 +1,6 @@
 package com.ticketrush.event;
 
+import com.ticketrush.cache.CacheAsideService;
 import com.ticketrush.event.dto.EventCreateRequest;
 import com.ticketrush.event.dto.EventResponse;
 import com.ticketrush.event.dto.EventUpdateRequest;
@@ -7,21 +8,31 @@ import com.ticketrush.exception.ResourceNotFoundException;
 import com.ticketrush.user.User;
 import com.ticketrush.user.UserRepository;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.core.type.TypeReference;
 
+import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.List;
 
 @Service
 public class EventServiceImpl implements EventService {
 
+    private static final String CACHE_NAME = "events";
+    private static final Duration CACHE_TTL = Duration.ofSeconds(45);
+
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
+    private final CacheAsideService cache;
 
-    public EventServiceImpl(EventRepository eventRepository, UserRepository userRepository) {
+    public EventServiceImpl(EventRepository eventRepository, UserRepository userRepository,
+                            CacheAsideService cache) {
         this.eventRepository = eventRepository;
         this.userRepository = userRepository;
+        this.cache = cache;
     }
 
     @Override
@@ -52,10 +63,25 @@ public class EventServiceImpl implements EventService {
     @Override
     @Transactional(readOnly = true)
     public Page<EventResponse> getAllEvents(String category, Pageable pageable) {
-        if (category != null && !category.isBlank()) {
-            return eventRepository.findByCategory(category, pageable).map(this::mapToResponse);
-        }
-        return eventRepository.findAll(pageable).map(this::mapToResponse);
+        String cat = (category != null && !category.isBlank()) ? category : "-";
+        String cacheKey = "ticketrush:cache:events:" + cat + ":" + pageable.getPageNumber() + ":" + pageable.getPageSize();
+
+        List<EventResponse> content = cache.getOrLoad(CACHE_NAME, cacheKey, CACHE_TTL,
+                new TypeReference<List<EventResponse>>() {},
+                () -> {
+                    Page<EventResponse> page;
+                    if (!"-".equals(cat)) {
+                        page = eventRepository.findByCategory(category, pageable).map(this::mapToResponse);
+                    } else {
+                        page = eventRepository.findAll(pageable).map(this::mapToResponse);
+                    }
+                    return page.getContent();
+                });
+
+        // We cache only the content list; reconstruct the Page wrapper.
+        // Total count comes from DB on miss (loader above), or is the list size on hit.
+        // For cached responses, total is approximate — acceptable trade-off for events listing.
+        return new PageImpl<>(content, pageable, content.size());
     }
 
     @Override

@@ -2,6 +2,7 @@ package com.ticketrush.show;
 
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
+import com.ticketrush.cache.SeatMapCache;
 import com.ticketrush.event.Event;
 import com.ticketrush.event.EventRepository;
 import com.ticketrush.exception.BadRequestException;
@@ -39,10 +40,12 @@ public class ShowServiceImpl implements ShowService {
     private final SeatRepository seatRepository;
     private final SeatGenerator seatGenerator;
     private final ObjectMapper objectMapper;
+    private final SeatMapCache seatMapCache;
 
     public ShowServiceImpl(ShowRepository showRepository, EventRepository eventRepository, VenueRepository venueRepository,
                            SeatTierRepository seatTierRepository, SeatRepository seatRepository,
-                           SeatGenerator seatGenerator, ObjectMapper objectMapper) {
+                           SeatGenerator seatGenerator, ObjectMapper objectMapper,
+                           SeatMapCache seatMapCache) {
         this.showRepository = showRepository;
         this.eventRepository = eventRepository;
         this.venueRepository = venueRepository;
@@ -50,6 +53,7 @@ public class ShowServiceImpl implements ShowService {
         this.seatRepository = seatRepository;
         this.seatGenerator = seatGenerator;
         this.objectMapper = objectMapper;
+        this.seatMapCache = seatMapCache;
     }
 
     @Override
@@ -132,7 +136,12 @@ public class ShowServiceImpl implements ShowService {
     @Transactional(readOnly = true)
     public SeatMapResponse getSeatMap(Long id) {
         findShowOrThrow(id);
-        List<Seat> seats = seatRepository.findByShowIdOrderByRowLabelAscSeatNumberAsc(id);
+        return seatMapCache.get(id, () -> loadSeatMapFromDb(id));
+    }
+
+    /** Direct DB load — used as the cache-miss callback. */
+    private SeatMapResponse loadSeatMapFromDb(Long showId) {
+        List<Seat> seats = seatRepository.findByShowIdOrderByRowLabelAscSeatNumberAsc(showId);
         List<SeatResponse> seatResponses = seats.stream()
                 .<SeatResponse>map(seat -> new SeatResponse(
                         seat.getId(),
@@ -143,7 +152,7 @@ public class ShowServiceImpl implements ShowService {
                         seat.getTier().getPriceCents(),
                         seat.getTier().getCurrency()
                 )).toList();
-        return new SeatMapResponse(id, seatResponses);
+        return new SeatMapResponse(showId, seatResponses);
     }
 
     private Show findShowOrThrow(Long id) {
